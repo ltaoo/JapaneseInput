@@ -104,7 +104,7 @@ export function RecognizeCore(props: { $canvas: CanvasCore; onSubmit?: (v: { tex
         _worker1 = await createWorker("lt", OEM.LSTM_ONLY, {
           // langPath: "https://jp.t.funzm.com/"
           // workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@v${version}/dist/worker.min.js`,
-          workerPath: `https://jp.t.funzm.com/worker.min.js`,
+          workerPath: `/worker.min.js`,
         });
       }
       //       if (_worker2 === null) {

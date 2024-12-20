@@ -5,9 +5,9 @@ import { base, Handler } from "@/domains/base";
 import { ViewComponentProps } from "@/store/types";
 import { CanvasCore } from "@/biz/canvas";
 import { RecognizeCore } from "@/biz/recognize";
+import { Gojūon_in_sort1, JPChar } from "@/biz/japanese_input/constants";
 import { AudioCore } from "@/domains/audio";
 import { KanaInput } from "@/components/KanaInput";
-import { jp_chars_in_sort1, JPChar } from "@/components/JapaneseInput/constants";
 import { shuffleArray } from "@/utils";
 import { Audio } from "@/components/ui/audio";
 import { KanaCore } from "@/biz/kana";
@@ -21,8 +21,7 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
   const $recognize = RecognizeCore({
     $canvas,
     onSubmit(v) {
-      console.log("on submit", v);
-      if (v.text === state.cur.pin) {
+      if (v.text === state.cur.hiragana) {
         $recognize.clear();
         next();
         return;
@@ -86,7 +85,7 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
     state,
     tip() {
       props.app.tip({
-        text: [state.cur.pin],
+        text: [state.cur.hiragana],
       });
     },
     next,
@@ -98,7 +97,7 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
 }
 
 export function KanatanaChallengePage(props: ViewComponentProps) {
-  const $challenge = KanaChallenge({ app: props.app, kana: jp_chars_in_sort1.filter((c) => !c.placeholder) });
+  const $challenge = KanaChallenge({ app: props.app, kana: Gojūon_in_sort1.filter((c) => !c.placeholder) });
 
   const [recognize, setRecognize] = createSignal($challenge.$recognize.state);
   const [question, setQuestion] = createSignal($challenge.state);
@@ -136,6 +135,7 @@ export function KanatanaChallengePage(props: ViewComponentProps) {
                 fallback={<Loader class="w-8 h-8 text-gray-600 animate animate-spin" />}
               >
                 <ScanText class="w-8 h-8 text-gray-600" />
+                <div class="mt-1 text-sm">识别</div>
               </Show>
             </div>
             <div
@@ -145,6 +145,7 @@ export function KanatanaChallengePage(props: ViewComponentProps) {
               }}
             >
               <Eraser class="w-8 h-8 text-gray-600" />
+              <div class="mt-1 text-sm">清除</div>
             </div>
           </div>
         </div>
@@ -152,16 +153,16 @@ export function KanatanaChallengePage(props: ViewComponentProps) {
       <div class="absolute right-8 top-8">
         <div class="flex space-x-2 rounded-md bg-gray-100">
           <div
-            class="p-4"
+            class="p-4 cursor-pointer"
             onClick={() => {
               $challenge.tip();
             }}
           >
             <Lightbulb class="w-6 w-6" />
           </div>
-          <div class="p-4">
+          {/* <div class="p-4">
             <Settings class="w-6 w-6" />
-          </div>
+          </div> */}
         </div>
       </div>
       <div class="absolute left-0 bottom-8 w-full">

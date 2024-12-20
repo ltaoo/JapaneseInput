@@ -13,9 +13,14 @@ export const HomeLayout: ViewComponent = (props) => {
   const { app, history, client, storage, pages, view } = props;
 
   const [subViews, setSubViews] = createSignal(view.subViews);
+  const [curView, setCurView] = createSignal(view.curView);
 
   view.onSubViewsChange((v) => {
     setSubViews(v);
+  });
+  view.onCurViewChange((v) => {
+    console.log(v.name);
+    setCurView(v);
   });
 
   return (
@@ -24,7 +29,10 @@ export const HomeLayout: ViewComponent = (props) => {
         <div class="h-[88px] py-4 bg-gray-100">
           <div class="flex w-[960px] mx-auto  space-x-4">
             <div
-              class="menu p-4 rounded-md bg-gray-300 cursor-pointer"
+              classList={{
+                "menu p-4 rounded-md cursor-pointer": true,
+                "bg-gray-300": curView()?.name === "root.home_layout.index",
+              }}
               onClick={() => {
                 history.push("root.home_layout.index");
               }}
@@ -32,7 +40,10 @@ export const HomeLayout: ViewComponent = (props) => {
               首页
             </div>
             <div
-              class="menu p-4"
+              classList={{
+                "menu p-4 rounded-md cursor-pointer": true,
+                "bg-gray-300": curView()?.name === "root.home_layout.challenge1",
+              }}
               onClick={() => {
                 history.push("root.home_layout.challenge1");
               }}
@@ -40,14 +51,17 @@ export const HomeLayout: ViewComponent = (props) => {
               平假名挑战
             </div>
             <div
-              class="menu p-4"
+              classList={{
+                "menu p-4 rounded-md cursor-pointer": true,
+                "bg-gray-300": curView()?.name === "root.home_layout.challenge2",
+              }}
               onClick={() => {
                 history.push("root.home_layout.challenge2");
               }}
             >
               单词挑战
             </div>
-            <div
+            {/* <div
               class="menu p-4"
               onClick={() => {
                 history.push("root.home_layout.analysis");
@@ -78,7 +92,7 @@ export const HomeLayout: ViewComponent = (props) => {
               }}
             >
               生词本
-            </div>
+            </div> */}
           </div>
         </div>
         <div class="flex-1">

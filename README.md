@@ -1,14 +1,25 @@
-# Makeicon
+# 日语输入组件
 
-在线制作 `SVG` 图标。
+适用于一些需要输入日文的场景
 
-<div align="center">
-	<img src="assets/makeicon-example2.png" alt="在线编辑"/>
-</div>
+## 使用方式
 
-支持导入已有的 `SVG` 图标并编辑。
+### React
 
-![导入SVG图标](assets/makeicon-example.png)
+```js
 
-并且可以直接生成小程序代码，复制到小程序项目即可直接生效。
+```
+
+### SolidJS
+
+```js
+const $jp = JapaneseInput({});
+
+onMount(() => {
+  // 加载额外的字典
+  $jp.loadDict();
+});
+
+return <JapaneseInput store={$jp} />;
+```
 

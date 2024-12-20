@@ -1,20 +1,21 @@
 import { createSignal, For, Show } from "solid-js";
 import { ChevronRight, Eraser, Eye, File, Info, Lightbulb, Loader, Mic, ScanText, Upload } from "lucide-solid";
 
-import { base, Handler } from "@/domains/base";
 import { ViewComponentProps } from "@/store/types";
-import { AudioCore } from "@/domains/audio";
-import { shuffleArray } from "@/utils";
-import { Audio } from "@/components/ui/audio";
-import { JapaneseInput, JapaneseInputCore } from "@/components/JapaneseInput";
-import { Button } from "@/components/ui";
+import { base, Handler } from "@/domains/base";
 import { ButtonCore } from "@/domains/ui";
+import { AudioCore } from "@/domains/audio";
+import { JapaneseInputCore } from "@/biz/japanese_input";
+import { Audio } from "@/components/ui/audio";
+import { JapaneseInput } from "@/components/JapaneseInput";
+import { Button } from "@/components/ui";
+import { shuffleArray } from "@/utils";
 
 type JPWord = {
   /** 平假名 */
-  kana: string;
+  hiragana: string;
   /** 罗马字 */
-  luoma: string;
+  romaji: string;
   /** 日语单词 */
   word: string;
   /** 中文释义 */
@@ -31,16 +32,16 @@ function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }
     if (!value) {
       return;
     }
-    if (!state.cur.kana) {
+    if (!state.cur.hiragana) {
       return;
     }
-    if (value === state.cur.kana) {
+    if (value === state.cur.hiragana) {
       $input.clear();
       $input.focus();
       next();
       return;
     }
-    console.log("incorrect", value, state.cur.kana);
+    console.log("incorrect", value, state.cur.hiragana);
   }
 
   const $input = JapaneseInputCore({ app: props.app });
@@ -98,7 +99,7 @@ function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }
     state,
     tip() {
       props.app.tip({
-        text: [state.cur.luoma],
+        text: [state.cur.romaji],
       });
     },
     next,
@@ -114,92 +115,92 @@ export function WordChallengePage(props: ViewComponentProps) {
     app: props.app,
     kana: [
       {
-        kana: "あお",
-        luoma: "ao",
+        hiragana: "あお",
+        romaji: "ao",
         word: "青",
         meaning: "蓝色，青色，绿色",
       },
       {
-        kana: "あか",
-        luoma: "aka",
+        hiragana: "あか",
+        romaji: "aka",
         word: "赤",
         meaning: "红色",
       },
       {
-        kana: "あき",
-        luoma: "aki",
+        hiragana: "あき",
+        romaji: "aki",
         word: "秋",
         meaning: "秋天",
       },
       {
-        kana: "あさ",
-        luoma: "asa",
+        hiragana: "あさ",
+        romaji: "asa",
         word: "朝",
         meaning: "早上，早晨",
       },
       {
-        kana: "あさごはん",
-        luoma: "asa",
+        hiragana: "あさごはん",
+        romaji: "asa",
         word: "朝ご飯",
         meaning: "早饭",
       },
       {
-        kana: "あさって",
-        luoma: "asatte",
+        hiragana: "あさって",
+        romaji: "asatte",
         word: "あさって",
         meaning: "后天",
       },
       {
-        kana: "あし",
-        luoma: "ashi",
+        hiragana: "あし",
+        romaji: "ashi",
         word: "足",
         meaning: "脚，腿",
       },
       {
-        kana: "あした",
-        luoma: "ashita",
+        hiragana: "あした",
+        romaji: "ashita",
         word: "明日",
         meaning: "明天",
       },
       {
-        kana: "あたま",
-        luoma: "atama",
+        hiragana: "あたま",
+        romaji: "atama",
         word: "頭",
         meaning: "头，脑袋",
       },
       {
-        kana: "あと",
-        luoma: "ato",
+        hiragana: "あと",
+        romaji: "ato",
         word: "後",
         meaning: "后面，后方；以后",
       },
       {
-        kana: "あに",
-        luoma: "ani",
+        hiragana: "あに",
+        romaji: "ani",
         word: "兄",
         meaning: "哥哥",
       },
       {
-        kana: "あね",
-        luoma: "ane",
+        hiragana: "あね",
+        romaji: "ane",
         word: "姉",
         meaning: "姐姐",
       },
       {
-        kana: "あめ",
-        luoma: "ame",
+        hiragana: "あめ",
+        romaji: "ame",
         word: "雨",
         meaning: "雨",
       },
       {
-        kana: "あめ",
-        luoma: "ame",
+        hiragana: "あめ",
+        romaji: "ame",
         word: "飴",
         meaning: "糖，饴糖",
       },
       {
-        kana: "いえ",
-        luoma: "ie",
+        hiragana: "いえ",
+        romaji: "ie",
         word: "家",
         meaning: "房屋；家，家庭",
       },
@@ -226,10 +227,15 @@ export function WordChallengePage(props: ViewComponentProps) {
       </div>
       <div class="absolute right-8 top-8">
         <div class="flex space-x-2 rounded-md bg-gray-100">
-          <div class="p-4">
+          <div
+            class="p-4 cursor-pointer"
+            onClick={() => {
+              $challenge.tip();
+            }}
+          >
             <Lightbulb class="w-6 w-6" />
           </div>
-          <div class="p-4">
+          {/* <div class="p-4">
             <File class="w-6 w-6" />
           </div>
           <div class="p-4">
@@ -237,7 +243,7 @@ export function WordChallengePage(props: ViewComponentProps) {
           </div>
           <div class="p-4">
             <Info class="w-6 w-6" />
-          </div>
+          </div> */}
         </div>
       </div>
       <div class="absolute left-1/2 bottom-8 py-8 w-[960px] -translate-x-1/2">

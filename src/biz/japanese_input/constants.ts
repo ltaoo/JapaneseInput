@@ -110,28 +110,31 @@ import {
   wu,
   we,
   tt,
-} from "./ming";
+} from "./chars";
 
 export type JPChar = {
   id: string;
   // 平假名
-  pin: string;
+  hiragana: string;
   // 平假名笔画
-  pin_count: number;
+  hiragana_count: number;
   // 片假名
-  pian: string;
+  katakana: string;
   // 片假名笔画
-  pian_count: number;
+  katakana_count: number;
   // 发音
   // voice: string;
   // 罗马字
-  luo: string;
+  rōmaji: string;
   // 是否是占位
   placeholder?: boolean;
 };
 export type NestedJPChar = {
   [key: string]: JPChar | NestedJPChar;
 };
+/**
+ * 辅助输入的结构
+ */
 export const jp_chars2: NestedJPChar = {
   a: a,
   i: i,
@@ -312,7 +315,7 @@ export const jp_chars2: NestedJPChar = {
     l: tt,
   },
 };
-export const jp_chars_in_sort1: JPChar[] = [
+export const Gojūon_in_sort1: JPChar[] = [
   a,
   i,
   u,
@@ -366,7 +369,7 @@ export const jp_chars_in_sort1: JPChar[] = [
   nn,
   tt,
 ];
-export const jp_chars_in_sort2: JPChar[] = [
+export const VoicedSounds_in_sort1: JPChar[] = [
   ga,
   gi,
   gu,
@@ -393,7 +396,7 @@ export const jp_chars_in_sort2: JPChar[] = [
   pe,
   po,
 ];
-export const jp_chars_in_sort3: JPChar[] = [
+export const Yōon_in_sort1: JPChar[] = [
   kya,
   kyu,
   kyo,
@@ -428,36 +431,36 @@ export const jp_chars_in_sort3: JPChar[] = [
   ryu,
   ryo,
 ];
-export const jp_chars_in_sort1_grouped_by_pin_count = [...jp_chars_in_sort1]
+export const jp_chars_in_sort1_grouped_by_pin_count = [...Gojūon_in_sort1]
   .filter((char) => !char.placeholder)
   .reduce((acc, item) => {
     // 查找当前 pin_count 是否已经存在于累加器中
-    const group = acc.find((g) => g.sort === item.pin_count);
+    const group = acc.find((g) => g.sort === item.hiragana_count);
     // 如果找到了对应的组，就将当前对象添加进去
     if (group) {
       group.chars.push(item);
     } else {
       // 如果没有找到，就新建一个组
       acc.push({
-        sort: item.pin_count,
+        sort: item.hiragana_count,
         chars: [item],
       });
     }
     return acc;
   }, [] as { sort: number; chars: JPChar[] }[])
   .sort((a, b) => a.sort - b.sort);
-export const jp_chars_in_sort1_grouped_by_pian_count = [...jp_chars_in_sort1]
+export const jp_chars_in_sort1_grouped_by_pian_count = [...Gojūon_in_sort1]
   .filter((char) => !char.placeholder)
   .reduce((acc, item) => {
     // 查找当前 pin_count 是否已经存在于累加器中
-    const group = acc.find((g) => g.sort === item.pian_count);
+    const group = acc.find((g) => g.sort === item.katakana_count);
     // 如果找到了对应的组，就将当前对象添加进去
     if (group) {
       group.chars.push(item);
     } else {
       // 如果没有找到，就新建一个组
       acc.push({
-        sort: item.pian_count,
+        sort: item.katakana_count,
         chars: [item],
       });
     }

@@ -1,4 +1,4 @@
-import { JPChar } from "@/components/JapaneseInput/constants";
+import { JPChar } from "@/biz/japanese_input/constants";
 
 export function KanaCore(props: JPChar) {
   return {
