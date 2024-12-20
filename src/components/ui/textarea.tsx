@@ -33,6 +33,9 @@ const Textarea = (props: { store: InputCore<string> } & JSX.HTMLAttributes<HTMLT
     store.getCursorPosition = () => {
       const position = $input.selectionStart;
       console.log("[BIZ]ui/input - store.getSelectionPosition", position);
+      if (!fake) {
+        return { x: 0, y: 0 };
+      }
       if (position === null) {
         return { x: 0, y: 0 };
       }

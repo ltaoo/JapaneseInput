@@ -21,7 +21,6 @@ const config = defineConfig(({ mode }) => {
     plugins: [solidPlugin()],
     resolve: {
       alias: {
-        "hls.js": "hls.js/dist/hls.min.js",
         "lucide-solid": require.resolve("lucide-solid").replace("cjs", "esm"),
         "@": path.resolve(__dirname, "./src"),
       },
