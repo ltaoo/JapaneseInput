@@ -145,7 +145,7 @@ export const HomeIndexPage: ViewComponent = (props) => {
               </div>
               <div
                 class="panel4"
-                style={{ display: curTable() === SheetTypes.VoicedSounds ? "block" : "none", width: `${100 * 3}px` }}
+                style={{ display: curTable() === SheetTypes.Yōon ? "block" : "none", width: `${100 * 3}px` }}
               >
                 <For each={Yōon_in_sort1}>
                   {(char) => {
@@ -172,7 +172,7 @@ export const HomeIndexPage: ViewComponent = (props) => {
               </div>
               <div
                 class="panel3"
-                style={{ display: curTable() === SheetTypes.Yōon ? "block" : "none", width: `${60 * 5}px` }}
+                style={{ display: curTable() === SheetTypes.VoicedSounds ? "block" : "none", width: `${60 * 5}px` }}
               >
                 <For each={VoicedSounds_in_sort1}>
                   {(char) => {
