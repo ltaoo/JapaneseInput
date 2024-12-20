@@ -2,24 +2,8 @@
 
 适用于一些需要输入日文的场景
 
-## 使用方式
+在输入框内输入英文时变成输入平假名
+![](./assets/jp_input_screenshot1.png)
 
-### React
-
-```js
-
-```
-
-### SolidJS
-
-```js
-const $jp = JapaneseInput({});
-
-onMount(() => {
-  // 加载额外的字典
-  $jp.loadDict();
-});
-
-return <JapaneseInput store={$jp} />;
-```
-
+并且还可以选择平假名对应的汉字或片假名
+![](./assets/jp_input_screenshot2.png)
