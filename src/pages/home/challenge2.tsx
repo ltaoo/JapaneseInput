@@ -9,7 +9,7 @@ import { JapaneseInputCore } from "@/biz/japanese_input";
 import { Audio } from "@/components/ui/audio";
 import { JapaneseInput } from "@/components/JapaneseInput";
 import { Button } from "@/components/ui";
-import { shuffleArray } from "@/utils";
+import { shuffleArray, sleep } from "@/utils";
 
 type JPWord = {
   /** 平假名 */
@@ -21,27 +21,32 @@ type JPWord = {
   /** 中文释义 */
   meaning: string;
 };
-function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }) {
-  let _questions = shuffleArray(props.kana);
+function WordChallenge(props: { app: ViewComponentProps["app"]; words: JPWord[] }) {
+  let _questions = shuffleArray(props.words);
   let _index = 0;
+  let _correct: boolean | null = null;
   let _total = _questions.length;
 
-  function submit() {
+  async function submit() {
     const value = $input.value;
-    console.log("click btn", value);
     if (!value) {
       return;
     }
     if (!state.cur.hiragana) {
       return;
     }
-    if (value === state.cur.hiragana) {
+    if (value === state.cur.word || value === state.cur.hiragana) {
+      _correct = true;
+      bus.emit(Events.Change, { ...state });
+      await sleep(2000);
       $input.clear();
       $input.focus();
       next();
       return;
     }
     console.log("incorrect", value, state.cur.hiragana);
+    _correct = false;
+    bus.emit(Events.Change, { ...state });
   }
 
   const $input = JapaneseInputCore({ app: props.app });
@@ -62,6 +67,9 @@ function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }
     get total() {
       return _total;
     },
+    get correct() {
+      return _correct;
+    },
     get progress() {
       return (_index / _total) * 100;
     },
@@ -81,6 +89,7 @@ function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }
   function play() {}
   function next() {
     _index += 1;
+    _correct = null;
     if (!state.cur) {
       bus.emit(Events.Completed);
       return;
@@ -113,7 +122,7 @@ function WordChallenge(props: { app: ViewComponentProps["app"]; kana: JPWord[] }
 export function WordChallengePage(props: ViewComponentProps) {
   const $challenge = WordChallenge({
     app: props.app,
-    kana: [
+    words: [
       {
         hiragana: "あお",
         romaji: "ao",
@@ -208,21 +217,27 @@ export function WordChallengePage(props: ViewComponentProps) {
   });
 
   const [recognize, setRecognize] = createSignal($challenge.$input.state);
-  const [question, setQuestion] = createSignal($challenge.state);
+  const [state, setState] = createSignal($challenge.state);
 
   $challenge.$input.onChange((v) => setRecognize(v));
-  $challenge.onChange((v) => setQuestion(v));
+  $challenge.onChange((v) => setState(v));
 
   return (
     <div class="relative h-full pt-2">
       <div class="flex justify-center mt-8">
-        <div class="text-3xl">{question().cur.meaning}</div>
+        <div class="text-3xl">{state().cur.meaning}</div>
         <Audio store={$challenge.$audio} />
       </div>
       <div class="w-[210px] mx-auto mt-8">
         <div class="relative flex space-x-2 w-[210px]">
           <JapaneseInput class="relative w-full h-full" store={$challenge.$input} />
           <Button store={$challenge.$submit}>确定</Button>
+        </div>
+      </div>
+      <div>
+        <div class="mt-2 text-center">
+          <Show when={state().correct === true}>正确</Show>
+          <Show when={state().correct === false}>错误</Show>
         </div>
       </div>
       <div class="absolute right-8 top-8">
@@ -250,9 +265,9 @@ export function WordChallengePage(props: ViewComponentProps) {
         <div class="mt-8">
           <div class="relative w-full h-[8px]">
             <div class="w-full h-full bg-gray-200"></div>
-            <div class="absolute left-0 top-0 h-full bg-green-500" style={{ width: `${question().progress}%` }}></div>
+            <div class="absolute left-0 top-0 h-full bg-green-500" style={{ width: `${state().progress}%` }}></div>
             <div>
-              {question().index}/{question().total}
+              {state().index}/{state().total}
             </div>
           </div>
         </div>

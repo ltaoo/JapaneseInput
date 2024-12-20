@@ -12,7 +12,6 @@ export function JapaneseInput(
 ) {
   const { store: $store } = props;
 
-  let _pressing: Record<string, boolean> = {};
   const [state, setState] = createSignal($store.state);
   $store.onChange((v) => setState(v));
   onMount(() => {
@@ -25,45 +24,7 @@ export function JapaneseInput(
         <Textarea
           store={$store.ui.$input}
           onKeyDown={(event) => {
-            console.log(event.code, event.key, _pressing);
-            _pressing[event.key] = true;
-            if (event.key === "Process") {
-              return;
-            }
-            if (event.key === "Control" || event.key === "Meta") {
-              return;
-            }
-            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-              return;
-            }
-            if (_pressing["Control"] || _pressing["Meta"]) {
-              // 允许复制粘贴等操作
-              return;
-            }
-            if (_pressing["Shift"]) {
-              // 允许输入大写字母
-              return;
-            }
-            // if (event.code === "Enter" && !$store.state.isInputting && !$store.state.isSelecting) {
-            //   event.preventDefault();
-            //   $store.handleEnter();
-            //   return;
-            // }
-            if (
-              (event.code === "ArrowUp" || event.code === "ArrowDown") &&
-              !$store.state.isInputting &&
-              !$store.state.isSelecting
-            ) {
-              return;
-            }
-            if (event.code === "Space" && !$store.state.isInputting && !$store.state.isSelecting) {
-              return;
-            }
-            if (event.code === "Backspace" && !$store.state.isInputting && !$store.state.isSelecting) {
-              return;
-            }
-            event.preventDefault();
-            $store.handleKeyup({
+            $store.handleKeydown({
               key: event.key,
               code: event.code,
               preventDefault() {
@@ -72,7 +33,7 @@ export function JapaneseInput(
             });
           }}
           onKeyUp={(event) => {
-            delete _pressing[event.key];
+            $store.handleKeyup({ key: event.key });
           }}
           onClick={() => {
             $store.reset();
@@ -141,9 +102,7 @@ export function JapaneseInput(
                       classList={{
                         "bg-gray-100": i() === state().selectedIndex,
                       }}
-                      onClick={() => {
-
-                      }}
+                      onClick={() => {}}
                     >
                       {i() + 1}. {opt.text}
                     </div>
@@ -159,7 +118,7 @@ export function JapaneseInput(
                     "text-gray-100": !state().kanjiResp.canPrev,
                   }}
                   onClick={() => {
-                    $store.prevPageKanji();
+                    $store.prevPageWords();
                   }}
                 >
                   <ChevronUp class="w-4 h-4" />
@@ -170,7 +129,7 @@ export function JapaneseInput(
                     "text-gray-100": !state().kanjiResp.canNext,
                   }}
                   onClick={() => {
-                    $store.nextPageKanji();
+                    $store.nextPageWords();
                   }}
                 >
                   <ChevronDown class="w-4 h-4" />

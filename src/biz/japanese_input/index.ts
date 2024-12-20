@@ -45,16 +45,16 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
   let _value = "";
   let _cursor = 0;
   let _input_cursor = 0;
-  let _isInputting = false;
+  let _is_inputting = false;
   let _input_position: { x: number; y: number; h: "left" | "right"; v: "up" | "down" } = {
     x: 0,
     y: 0,
     h: "right",
     v: "down",
   };
-  let _isSelecting = false;
+  let _is_selecting = false;
   // let _selected = "";
-  let _selectedIndex = 0;
+  let _selected_index = 0;
   let _kanji_resp: { list: { text: string }[]; page_size: number; page: number } = { list: [], page_size: 8, page: 1 };
 
   const state = {
@@ -62,20 +62,20 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       return _value;
     },
     get isInputting() {
-      return _isInputting;
+      return _is_inputting;
     },
     get popup() {
       return _input_position;
     },
     get selected() {
       // return _selected;
-      return this.kanjiResp.list[_selectedIndex]?.text ?? "";
+      return this.kanjiResp.list[_selected_index]?.text ?? "";
     },
     get isSelecting() {
-      return _isSelecting;
+      return _is_selecting;
     },
     get selectedIndex() {
-      return _selectedIndex;
+      return _selected_index;
     },
     get kanjiResp() {
       const { list, page, page_size } = _kanji_resp;
@@ -197,9 +197,9 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
     dict: new RequestCore(fetch_kanji_dict),
     dict_patch: new RequestCore(fetch_kanji_patch_dict),
   };
-
+  /** 确认选择候选词 */
   function confirm() {
-    const v = _isSelecting ? state.selected : _value;
+    const v = _is_selecting ? state.selected : _value;
     const [start, end] = $input.getCursorIndex();
     const count = $input.value.length;
     console.log("[BIZ]JapInput - after get cursor index", start, end);
@@ -216,16 +216,15 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
     }
     bus.emit(Events.CompleteInput);
   }
+  /** 重置所有状态 */
   function reset() {
     _value = "";
     _cursor = 0;
     _input_cursor = 0;
-    _isInputting = false;
+    _is_inputting = false;
     _input_position = { x: 0, y: 0, h: "right", v: "down" };
-
-    _isSelecting = false;
-    // _selected = "";
-    _selectedIndex = 0;
+    _is_selecting = false;
+    _selected_index = 0;
     _kanji_resp = {
       list: [],
       page_size: 8,
@@ -234,29 +233,63 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
     bus.emit(Events.Change, { ...state });
   }
   /** 获取下一页候选词 */
-  function nextPageKanji(index = 0) {
+  function nextPageWords(index = 0) {
     if (_kanji_resp.page === Math.ceil(_kanji_resp.list.length / _kanji_resp.page_size)) {
       return;
     }
     _kanji_resp.page += 1;
-    _selectedIndex = index;
+    _selected_index = index;
     bus.emit(Events.Change, { ...state });
   }
   /** 获取上一页候选词 */
-  function prevPageKanji(index = 0) {
+  function prevPageWords(index = 0) {
     if (_kanji_resp.page === 1) {
       return;
     }
     _kanji_resp.page -= 1;
-    _selectedIndex = index;
+    _selected_index = index;
     bus.emit(Events.Change, { ...state });
   }
-  async function handleKeyup(values: { key: string; code: string; preventDefault: () => void }) {
+  /** 处理键盘按下 */
+  async function handleKeydown(values: { key: string; code: string; preventDefault: () => void }) {
     const { key, code } = values;
+    const event = values;
+    console.log("[BIZ]japanese_input - handleKeydown", event.code, event.key, _pressing);
+    _pressing[event.key] = true;
+    if (event.key === "Process") {
+      return;
+    }
+    if (event.key === "Control" || event.key === "Meta") {
+      return;
+    }
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      return;
+    }
+    if (_pressing["Control"] || _pressing["Meta"]) {
+      // 允许复制粘贴等操作
+      return;
+    }
+    if (_pressing["Shift"]) {
+      // 允许输入大写字母
+      return;
+    }
+    // if (event.code === "Enter" && !$store.state.isInputting && !$store.state.isSelecting) {
+    //   event.preventDefault();
+    //   $store.handleEnter();
+    //   return;
+    // }
+    if ((event.code === "ArrowUp" || event.code === "ArrowDown") && !_is_inputting && !_is_selecting) {
+      return;
+    }
+    if (event.code === "Space" && !_is_inputting && !_is_selecting) {
+      return;
+    }
+    if (event.code === "Backspace" && !_is_inputting && !_is_selecting) {
+      return;
+    }
+    event.preventDefault();
 
-    //     preventDefault();
-
-    console.log("[PAGE]home/index - app.onKeyup", code, _pressing, _isInputting);
+    console.log("[BIZ]japanese_input - process");
 
     setTimeout(() => {
       // 快捷键按得太快，Ctrl 的 up 会先于 c 的 up。导致 c up 认为是单独击键
@@ -267,35 +300,35 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       reset();
       return;
     }
-    if (_isSelecting) {
+    if (_is_selecting) {
       if (code === "ArrowUp") {
-        let n = _selectedIndex - 1;
+        let n = _selected_index - 1;
         if (n < 0) {
           n = _kanji_resp.page_size - 1;
-          prevPageKanji(n);
+          prevPageWords(n);
           return;
         }
-        _selectedIndex = n;
+        _selected_index = n;
         // _selected = _kanji_resp.list[_selectedIndex].text;
         bus.emit(Events.Change, { ...state });
         return;
       }
       if (code === "ArrowDown") {
-        let n = _selectedIndex + 1;
+        let n = _selected_index + 1;
 
         if (n > state.kanjiResp.list.length - 1) {
           n = 0;
-          nextPageKanji(n);
+          nextPageWords(n);
           return;
         }
-        _selectedIndex = n;
+        _selected_index = n;
         // _selected = _kanji_resp.list[_selectedIndex].text;
         bus.emit(Events.Change, { ...state });
         return;
       }
     }
     if (code === "Tab") {
-      if (_isInputting) {
+      if (_is_inputting) {
         // const r = await $requests.search.run(_value);
         // if (r.error) {
         //   app.tip({
@@ -304,7 +337,7 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
         //   return;
         // }
         const kanji_list = _dict[_value] || [];
-        _isSelecting = true;
+        _is_selecting = true;
         const result = [
           { text: _value },
           { text: exchange_katakana(_value) },
@@ -314,14 +347,14 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
             };
           }),
         ];
-        _selectedIndex = 2;
+        _selected_index = 2;
         _kanji_resp = {
           list: result,
           page: 1,
           page_size: 8,
         };
-        if (!result[_selectedIndex]) {
-          _selectedIndex = 0;
+        if (!result[_selected_index]) {
+          _selected_index = 0;
         }
         // _selected = result[_selectedIndex].text;
         bus.emit(Events.Change, { ...state });
@@ -332,7 +365,7 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       return;
     }
     if (code === "Space") {
-      if (_isInputting || _isSelecting) {
+      if (_is_inputting || _is_selecting) {
         confirm();
         reset();
         return;
@@ -342,24 +375,24 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       return;
     }
     if (code === "BracketLeft") {
-      if (!_isSelecting) {
+      if (!_is_selecting) {
         return;
       }
-      prevPageKanji();
+      prevPageWords();
       return;
     }
     if (code === "BracketRight") {
-      if (!_isSelecting) {
+      if (!_is_selecting) {
         return;
       }
-      nextPageKanji();
+      nextPageWords();
       return;
     }
     if (code === "Backspace") {
-      if (_isSelecting) {
-        _isSelecting = false;
+      if (_is_selecting) {
+        _is_selecting = false;
         // _selected = "";
-        _selectedIndex = 0;
+        _selected_index = 0;
         _kanji_resp = {
           list: [],
           page_size: 8,
@@ -368,7 +401,7 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
         bus.emit(Events.Change, { ...state });
         return;
       }
-      if (_isInputting) {
+      if (_is_inputting) {
         _value = _value.slice(0, _value.length - 1);
         //       if (_inputting.length === 0) {
         //         if (_result.length === 0) {
@@ -382,8 +415,8 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
         //       }
         //       _inputting = _inputting.slice(0, _inputting.length - 1);
         if (_value.length === 0) {
-          _isInputting = false;
-          bus.emit(Events.VisibleChange, { visible: _isInputting });
+          _is_inputting = false;
+          bus.emit(Events.VisibleChange, { visible: _is_inputting });
         }
         console.log("[BIZ]JAInput - Backspace - before check", _input_cursor, _cursor);
         (() => {
@@ -421,7 +454,7 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
     }
     if (code === "Enter") {
       // console.log("before check", _isInputting, _isSelecting);
-      if (_isInputting || _isSelecting) {
+      if (_is_inputting || _is_selecting) {
         confirm();
         reset();
         return;
@@ -446,8 +479,8 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       // reset();
       return;
     }
-    if (!_isInputting) {
-      _isInputting = true;
+    if (!_is_inputting) {
+      _is_inputting = true;
       const { x, y } = $input.getCursorPosition();
       const popup = {
         x: x,
@@ -473,7 +506,7 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
         _input_position.y = y - 18;
         _input_position.v = "up";
       }
-      console.log("[BIZ]JAInput - before show input-panel", _input_position);
+      console.log("[BIZ]japanese_input - before show input-panel", _input_position);
       bus.emit(Events.StartInput);
       bus.emit(Events.Change, { ...state });
     }
@@ -488,9 +521,9 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
     if (!code.match(/^Key[a-zA-Z]{1}$/)) {
       return;
     }
-    if (Object.keys(_pressing).length !== 0) {
-      return;
-    }
+    // if (Object.keys(_pressing).length !== 0) {
+    //   return;
+    // }
     //     if (key.match(/[aiueo]/)) {
     //       if (_inputting.length === 0) {
     //         const r = match_ming([key]);
@@ -516,6 +549,9 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       _input_cursor = _cursor;
     }
     bus.emit(Events.Change, { ...state });
+  }
+  function handleKeyup(event: { key: string }) {
+    delete _pressing[event.key];
   }
 
   //   app.onKeydown(handleKeyup);
@@ -559,8 +595,9 @@ export function JapaneseInputCore(props: { app: ViewComponentProps["app"] }) {
       })();
     },
     reset,
-    nextPageKanji,
-    prevPageKanji,
+    nextPageWords,
+    prevPageWords,
+    handleKeydown,
     handleKeyup,
     change(v: string) {
       _value = v;

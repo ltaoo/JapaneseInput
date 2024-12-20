@@ -8,24 +8,33 @@ import { RecognizeCore } from "@/biz/recognize";
 import { Gojūon_in_sort1, JPChar } from "@/biz/japanese_input/constants";
 import { AudioCore } from "@/domains/audio";
 import { KanaInput } from "@/components/KanaInput";
-import { shuffleArray } from "@/utils";
+import { shuffleArray, sleep } from "@/utils";
 import { Audio } from "@/components/ui/audio";
 import { KanaCore } from "@/biz/kana";
 
-function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }) {
+function HiraganaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }) {
+  const { app } = props;
+
   let _questions = shuffleArray(props.kana);
   let _index = 0;
   let _total = _questions.length;
+  let _correct: boolean | null = null;
 
   const $canvas = CanvasCore({});
   const $recognize = RecognizeCore({
+    app,
     $canvas,
-    onSubmit(v) {
+    async onSubmit(v) {
       if (v.text === state.cur.hiragana) {
+        _correct = true;
+        bus.emit(Events.Change, { ...state });
+        await sleep(2000);
         $recognize.clear();
         next();
         return;
       }
+      _correct = false;
+      bus.emit(Events.Change, { ...state });
     },
   });
   const $audio = AudioCore({});
@@ -36,6 +45,9 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
     },
     get index() {
       return _index + 1;
+    },
+    get correct() {
+      return _correct;
     },
     get total() {
       return _total;
@@ -66,11 +78,11 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
       return;
     }
     $audio.setURL(voice);
-    console.log("start play");
     $audio.play();
   }
   function next() {
     _index += 1;
+    _correct = null;
     if (!state.cur) {
       bus.emit(Events.Completed);
       return;
@@ -96,14 +108,14 @@ function KanaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar[] }
   };
 }
 
-export function KanatanaChallengePage(props: ViewComponentProps) {
-  const $challenge = KanaChallenge({ app: props.app, kana: Gojūon_in_sort1.filter((c) => !c.placeholder) });
+export function HiraganaChallengePage(props: ViewComponentProps) {
+  const $challenge = HiraganaChallenge({ app: props.app, kana: Gojūon_in_sort1.filter((c) => !c.placeholder) });
 
   const [recognize, setRecognize] = createSignal($challenge.$recognize.state);
-  const [question, setQuestion] = createSignal($challenge.state);
+  const [state, setState] = createSignal($challenge.state);
 
   $challenge.$recognize.onChange((v) => setRecognize(v));
-  $challenge.onChange((v) => setQuestion(v));
+  $challenge.onChange((v) => setState(v));
 
   return (
     <div class="relative h-full pt-8">
@@ -149,6 +161,21 @@ export function KanatanaChallengePage(props: ViewComponentProps) {
             </div>
           </div>
         </div>
+        <Show when={recognize().text}>
+          <div
+            classList={{
+              "mt-12 text-center text-4xl": true,
+              "text-green-500": state().correct === true,
+              "text-red-500": state().correct === false,
+            }}
+          >
+            {recognize().text}
+          </div>
+          <div class="mt-2 text-center">
+            <Show when={state().correct === true}>正确</Show>
+            <Show when={state().correct === false}>错误</Show>
+          </div>
+        </Show>
       </div>
       <div class="absolute right-8 top-8">
         <div class="flex space-x-2 rounded-md bg-gray-100">
@@ -170,9 +197,9 @@ export function KanatanaChallengePage(props: ViewComponentProps) {
           <div class="mt-8">
             <div class="relative w-full h-[8px]">
               <div class="w-full h-full bg-gray-200"></div>
-              <div class="absolute left-0 top-0 h-full bg-green-500" style={{ width: `${question().progress}%` }}></div>
+              <div class="absolute left-0 top-0 h-full bg-green-500" style={{ width: `${state().progress}%` }}></div>
               <div>
-                {question().index}/{question().total}
+                {state().index}/{state().total}
               </div>
             </div>
           </div>

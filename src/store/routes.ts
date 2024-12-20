@@ -28,7 +28,7 @@ const configure = {
           },
           challenge1: {
             title: "平假名挑战",
-            pathname: "/home/kana",
+            pathname: "/home/hiragana",
             options: {
               require: ["login"],
             },

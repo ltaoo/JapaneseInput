@@ -1,20 +1,30 @@
 import Tesseract, { createWorker, OEM, PSM, Worker } from "tesseract.js";
 
+import { ViewComponentProps } from "@/store/types";
 import { base, Handler } from "@/domains/base";
 import { CanvasCore } from "@/biz/canvas";
+import { file_request } from "@/biz/requests";
+import { RequestCore } from "@/domains/request";
+import { sleep } from "@/utils";
 
-export function RecognizeCore(props: { $canvas: CanvasCore; onSubmit?: (v: { text: string }) => void }) {
-  const { $canvas } = props;
+export function RecognizeCore(props: {
+  app: ViewComponentProps["app"];
+  $canvas: CanvasCore;
+  onSubmit?: (v: { text: string }) => void;
+}) {
+  const { app, $canvas } = props;
 
   let _pending = false;
   let _worker1: null | Worker = null;
-  let _worker2: null | Worker = null;
   let _result1: string[] = [];
-  let _result2: string[] = [];
+  let _text: string | null = null;
   let _finish = false;
   const state = {
     get pending() {
       return _pending;
+    },
+    get text() {
+      return _text;
     },
     get result() {
       return _result1;
@@ -101,10 +111,33 @@ export function RecognizeCore(props: { $canvas: CanvasCore; onSubmit?: (v: { tex
        *    });
        */
       if (_worker1 === null) {
+        // Step 2: Create a Blob object
+        const r = await new RequestCore(() =>
+          file_request.get<string>(
+            "/public/worker.min.js",
+            {},
+            {
+              headers: {
+                ContentType: "text/plain; charset=utf-8",
+              },
+            }
+          )
+        ).run();
+        if (r.error) {
+          app.tip({
+            text: [r.error.message],
+          });
+          return;
+        }
+        const jsCode = `globalThis.__TESSERACT_CORE_DOMAIN__ = "${window.location.origin}";${r.data}`;
+        const blob = new Blob([jsCode], { type: "application/javascript" });
+        // Step 3: Create a Blob URL
+        const blobURL = URL.createObjectURL(blob);
         _worker1 = await createWorker("lt", OEM.LSTM_ONLY, {
           // langPath: "https://jp.t.funzm.com/"
           // workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@v${version}/dist/worker.min.js`,
-          workerPath: `/worker.min.js`,
+          // workerPath: `/worker.min.js`,
+          workerPath: blobURL,
         });
       }
       //       if (_worker2 === null) {
@@ -141,15 +174,18 @@ export function RecognizeCore(props: { $canvas: CanvasCore; onSubmit?: (v: { tex
       _finish = true;
       if (_result1.length === 1) {
         // _finish = false;
-        bus.emit(Events.Submit, { text: _result1[0] });
+        _text = _result1[0];
+        bus.emit(Events.Submit, { text: _text });
       }
       bus.emit(Events.Change, { ...state });
     },
-    select(text: string) {
+    async select(text: string) {
+      _text = text;
       bus.emit(Events.Submit, { text });
     },
     clear() {
       _result1 = [];
+      _text = null;
       _finish = false;
       _pending = false;
       $canvas.layers.path.clear();
