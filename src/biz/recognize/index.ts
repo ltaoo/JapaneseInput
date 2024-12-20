@@ -114,7 +114,7 @@ export function RecognizeCore(props: {
         // Step 2: Create a Blob object
         const r = await new RequestCore(() =>
           file_request.get<string>(
-            "/public/worker.min.js",
+            "/worker.min.js",
             {},
             {
               headers: {

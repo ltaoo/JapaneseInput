@@ -10,7 +10,7 @@ export function search_kanji(text: string) {
 }
 export function fetch_kanji_dict() {
   return file_request.get<string>(
-    "/public/dict2.txt",
+    "/dict2.txt",
     {},
     {
       headers: {
@@ -21,7 +21,7 @@ export function fetch_kanji_dict() {
 }
 export function fetch_kanji_patch_dict() {
   return file_request.get<string>(
-    "/public/dict2_patch.txt",
+    "/dict2_patch.txt",
     {},
     {
       headers: {
