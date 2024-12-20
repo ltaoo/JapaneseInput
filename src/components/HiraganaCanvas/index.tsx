@@ -4,7 +4,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import { Canvas } from "@/components/Canvas";
 import { RecognizeCore } from "@/biz/recognize";
 
-export function KanaInput(props: { store: RecognizeCore } & JSX.HTMLAttributes<HTMLDivElement>) {
+export function HiraganaCanvas(props: { store: RecognizeCore } & JSX.HTMLAttributes<HTMLDivElement>) {
   const { store: $recognize } = props;
 
   const [state, setState] = createSignal($recognize.state);

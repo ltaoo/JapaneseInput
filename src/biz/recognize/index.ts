@@ -182,6 +182,7 @@ export function RecognizeCore(props: {
     async select(text: string) {
       _text = text;
       bus.emit(Events.Submit, { text });
+      bus.emit(Events.Change, { ...state });
     },
     clear() {
       _result1 = [];

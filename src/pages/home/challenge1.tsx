@@ -7,7 +7,7 @@ import { CanvasCore } from "@/biz/canvas";
 import { RecognizeCore } from "@/biz/recognize";
 import { Gojūon_in_sort1, JPChar } from "@/biz/japanese_input/constants";
 import { AudioCore } from "@/domains/audio";
-import { KanaInput } from "@/components/KanaInput";
+import { HiraganaCanvas } from "@/components/HiraganaCanvas";
 import { shuffleArray, sleep } from "@/utils";
 import { Audio } from "@/components/ui/audio";
 import { KanaCore } from "@/biz/kana";
@@ -25,6 +25,7 @@ function HiraganaChallenge(props: { app: ViewComponentProps["app"]; kana: JPChar
     app,
     $canvas,
     async onSubmit(v) {
+      console.log("input", v.text);
       if (v.text === state.cur.hiragana) {
         _correct = true;
         bus.emit(Events.Change, { ...state });
@@ -132,7 +133,7 @@ export function HiraganaChallengePage(props: ViewComponentProps) {
       </div>
       <div class="w-[210px] mx-auto mt-8">
         <div class="relative w-[210px] h-[210px]">
-          <KanaInput class="relative w-full h-full" store={$challenge.$recognize} />
+          <HiraganaCanvas class="relative w-full h-full" store={$challenge.$recognize} />
         </div>
         <div class="flex justify-center mt-4">
           <div class="flex space-x-2">
