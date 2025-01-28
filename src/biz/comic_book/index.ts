@@ -88,27 +88,6 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
      * @example
      * range(6) => [4, 9]
      */
-    range(page: number) {
-      if (page < 1 || page > _page_count) {
-        return [];
-      }
-      const view = _private_methods.view(page);
-      view[1] = view[1] || view[0];
-      let left = PageCountPrerender - 1;
-      let right = PageCountPrerender - 1;
-      if (view[0] >= 1 && view[1] <= _page_count) {
-        const remaining_pages = Math.floor((PageCountPrerender - 2) / 2);
-        if (_page_count - view[1] > view[0]) {
-          left = Math.min(view[0] - 1, remaining_pages);
-          right = 2 * remaining_pages - left;
-        } else {
-          right = Math.min(_page_count - view[1], remaining_pages);
-          left = 2 * remaining_pages - right;
-        }
-      }
-      _range = [Math.max(1, view[0] - left), Math.min(_page_count, view[1] + right)];
-      return _range;
-    },
     /**
      * Sets a page without effect
      */
@@ -143,7 +122,11 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       if (next_view.includes(_page_count)) {
         bus.emit(Events.Last);
       }
+      _target_page = page;
+
+      _private_methods.stop();
       _private_methods.make_range();
+
       if (_display === "single") {
         current = cur_view[0];
         next = next_view[0];
@@ -158,19 +141,21 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       bus.emit(Events.Turned, { page, view: next_view });
     },
     in_range(page: number) {
-      return page >= _range[0] && page <= _range[1];
+      const range = _methods.range(_page);
+      return page >= range[0] && page <= range[1];
     },
     set_page_loc(page: number) {
-      console.log("[BIZ]comic_book/index set_page_z", page, _view);
-      if (page === _view[0] || page === _view[1]) {
+      const view = _methods.view();
+      console.log("[BIZ]comic_book/index set_page_z", page, view);
+      if (page === view[0] || page === view[1]) {
         // 在视图内
         _pages_map[page].methods.wrap_css({ "z-index": _page_count, display: "" });
         // data.pageWrap[page].css({ "z-index": data.totalPages, display: "" });
         return 1;
       } else if (
-        (_display == "single" && page === _view[0] + 1) ||
-        (_display == "double" && page === _view[0] - 2) ||
-        page === _view[1] + 2
+        (_display == "single" && page === view[0] + 1) ||
+        (_display == "double" && page === view[0] - 2) ||
+        page === view[1] + 2
       ) {
         _pages_map[page].methods.wrap_css({ "z-index": _page_count - 1, display: "" });
         // data.pageWrap[page].css({ "z-index": data.totalPages - 1, display: "" });
@@ -179,6 +164,13 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _pages_map[page].methods.wrap_css({ "z-index": 0, display: "none" });
       // data.pageWrap[page].css({ "z-index": 0, display: "none" });
       return 0;
+    },
+    stop() {
+      if (_target_page) {
+        _page = _target_page;
+        _target_page = 0;
+      }
+      _methods.update();
     },
     make_flip(page: number) {
       let single = _display == "single";
@@ -213,19 +205,19 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           height: `${size.height}px`,
         });
       }
-      console.log("[BIZ]comic_book/index add_page - before in_range", index, _range);
+      const range = _methods.range();
+      console.log("[BIZ]comic_book/index add_page - before in_range", index, range);
       if (_private_methods.in_range(index)) {
         const tag = _private_methods.set_page_loc(index);
-        console.log("[BIZ]comic_book/index add_page - before set_page_loc", index, tag);
         if (!index || tag === 1) {
           _private_methods.make_flip(index);
         }
       }
     },
     make_range() {
-      // _range = _private_methods.range(_page);
-      console.log("[BIZ]comic_book/index make_range - before", _range);
-      for (let page = _range[0]; page <= _range[1]; page++) {
+      const range = _methods.range();
+      console.log("[BIZ]comic_book/index make_range - before", range, _initialized);
+      for (let page = range[0]; page <= range[1]; page++) {
         _private_methods.add_page(page);
       }
     },
@@ -265,8 +257,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         // }
       }
     },
-    view(page: number) {
-      const view = _private_methods.view(page);
+    view(page?: number) {
+      const next_page = page || _page;
+      const view = _private_methods.view(next_page);
       if (_display == "double") {
         _view = [view[0] > 0 ? view[0] : 0, view[1] <= _page_count ? view[1] : 0];
         return _view;
@@ -274,8 +267,30 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _view = [view[0] > 0 && view[0] <= _page_count ? view[0] : 0];
       return _view;
     },
-    range(page: number) {
-      return _private_methods.range(page);
+    // range(page: number) {
+    //   return _private_methods.range(page);
+    // },
+    range(page?: number) {
+      const next_page = page || _target_page || _page;
+      if (next_page < 1 || next_page > _page_count) {
+        return [];
+      }
+      const view = _private_methods.view(next_page);
+      view[1] = view[1] || view[0];
+      let left = PageCountPrerender - 1;
+      let right = PageCountPrerender - 1;
+      if (view[0] >= 1 && view[1] <= _page_count) {
+        const remaining_pages = Math.floor((PageCountPrerender - 2) / 2);
+        if (_page_count - view[1] > view[0]) {
+          left = Math.min(view[0] - 1, remaining_pages);
+          right = 2 * remaining_pages - left;
+        } else {
+          right = Math.min(_page_count - view[1], remaining_pages);
+          left = 2 * remaining_pages - right;
+        }
+      }
+      _range = [Math.max(1, view[0] - left), Math.min(_page_count, view[1] + right)];
+      return _range;
     },
     update() {
       _view = _private_methods.view(_page);
