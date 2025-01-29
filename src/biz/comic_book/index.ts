@@ -1,6 +1,7 @@
 import { base, Handler } from "@/domains/base";
 
 import { ComicBookPage } from "./page";
+import { PageFlipEffect } from "./flip";
 // import { pagesInDOM } from "../turn/constants";
 
 /** 在 DOM 中需要渲染的页面数量 */
@@ -31,6 +32,7 @@ type ComicBookProps = {
   width: number;
   height: number;
   duration: number;
+  disabled?: boolean;
   gradients: boolean;
   /**
    * Sets the hardware
@@ -172,10 +174,74 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       }
       _methods.update();
     },
+    flip() {},
+    add_motion_page() {
+      // var opts = $(this).data().f.opts,
+      // turn = opts.turn,
+      // dd = turn.data();
+      // opts.pageMv = opts.page;
+      // _private_methods._addMv(turn, opts.pageMv);
+      // dd.pagePlace[opts.next] = opts.page;
+      // turn.turn('update');
+    },
+    start(args: {
+      event: { stopPropagation: () => void; preventDefault: () => void };
+      flip: PageFlipEffect;
+      corner: string;
+    }) {
+      const { event, flip, corner } = args;
+      if (_display === "single") {
+        const left = corner.charAt(1) === "l";
+        if ((_page === 1 && left) || (_page === _page_count && !left)) {
+          event.preventDefault();
+        } else {
+          if (left) {
+            flip.methods.setNext(flip.next < flip.page ? flip.next : flip.page - 1);
+          } else {
+            flip.methods.setNext(flip.next > flip.page ? flip.next : flip.page + 1);
+          }
+        }
+      }
+      _private_methods.add_motion_page();
+    },
+    end(args: unknown) {},
+    pressed(args: unknown) {},
+    released(args: unknown) {},
     make_flip(page: number) {
-      let single = _display == "single";
+      const single = _display == "single";
       const even = page % 2;
       // 创建 flip 实例准备翻页动画
+      const flip = PageFlipEffect({
+        $turn: result,
+        page: page,
+        next: single && page === _page_count ? page - 1 : even || single ? page + 1 : page - 1,
+        duration: _props.duration,
+        acceleration: _props.acceleration,
+        corners: single ? "all" : even ? "forward" : "backward",
+        backGradient: _props.gradients,
+        frontGradient: _props.gradients,
+      });
+      flip.methods.disable(_props.disabled);
+      flip.onFlip((e) => {
+        console.log("[BIZ]comic_book/index make_flip - flip", e);
+        _private_methods.flip();
+      });
+      flip.onStart((args) => {
+        console.log("[BIZ]comic_book/index make_flip - start", args);
+        _private_methods.start(args);
+      });
+      flip.onEnd((args) => {
+        console.log("[BIZ]comic_book/index make_flip - end", args);
+        _private_methods.end(args);
+      });
+      flip.onPressed((args) => {
+        console.log("[BIZ]comic_book/index make_flip - pressed", args);
+        _private_methods.pressed(args);
+      });
+      flip.onReleased((args) => {
+        console.log("[BIZ]comic_book/index make_flip - released", args);
+        _private_methods.released(args);
+      });
       _pages_map[page].methods.css({
         "background-image": `linear-gradient(to ${single || page % 2 ? "left" : "right"}, #fff 90%, #ddd 100%)`,
       });
@@ -375,11 +441,17 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
   const bus = base<TheTypesOfEvents>();
   //   _methods.page(_page);
   //   _initialized = true;
-  return {
+  const result = {
     state: _state,
     methods: _methods,
     get initialized() {
       return _initialized;
+    },
+    get display() {
+      return _display;
+    },
+    get pages() {
+      return _pages_map;
     },
     onStateChange: (handler: Handler<TheTypesOfEvents[Events.StateChange]>) => {
       bus.on(Events.StateChange, handler);
@@ -397,6 +469,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       bus.on(Events.Last, handler);
     },
   };
+  return result;
 }
 
-export type ComicBook = ReturnType<typeof ComicBook>;
+export type ComicBook<T extends any> = ReturnType<typeof ComicBook<T>>;
