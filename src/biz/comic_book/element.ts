@@ -1,6 +1,7 @@
 import { base, Handler } from "@/domains/base";
 
 type ElementJQueryLikeCoreProps = {
+  name: string;
   class?: string;
   tag: string;
   parent: null | ElementJQueryLikeCore;
@@ -11,29 +12,47 @@ export type TreeNode = {
   tag: string;
   children: TreeNode[] | null;
 };
-type TheElementInterface = {
-  css: (styles: Partial<{ [key: string]: string }>) => void;
+export type TheElementInterface = {
+  addClass: (name: string) => void;
+  css: (styles: Partial<{ [key: string]: string | number }>) => void;
   transform: (transform: string) => void;
+  offset: () => { top: number; left: number };
+  parent: () => ElementJQueryLikeCore | null;
+  width: () => number;
+  height: () => number;
+  show: () => void;
+  hide: () => void;
+  is: (attr: string) => boolean;
 };
 
 export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
   let _mounted = false;
-  let _width = 0;
-  let _height = 0;
+  let _width = 400;
+  let _height = 500;
   let _styles: {
-    top?: string;
-    left?: string;
-    right?: string;
-    bottom?: string;
+    cursor?: string;
+    "pointer-events"?: string;
+    "z-index"?: string | number;
+    overflow?: string;
+    position?: string;
+    display?: string;
+    width?: string | number;
+    height?: string | number;
+    top?: string | number;
+    left?: string | number;
+    right?: string | number;
+    bottom?: string | number;
     "transform-origin"?: string;
     transform?: string;
     "background-image"?: string;
   } = {
     // "background-image": "linear-gradient(to left, #fff 95%, #ddd 100%)",
   };
+  let _class = "";
   let _parent = props.parent;
   let _children: ElementJQueryLikeCore[] = props.children || [];
   let _elm: TheElementInterface | null = null;
+  let _data: Record<string, any> = {};
 
   const _methods = {
     width() {
@@ -51,7 +70,7 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
       _methods.css(properties);
     },
     css(styles: Partial<typeof _styles>) {
-      console.log("[BIZ]comic_book/element css", _elm, styles);
+      //       console.log("[BIZ]comic_book/element css", _elm, styles);
       if (!_elm) {
         _styles = {
           ..._styles,
@@ -67,7 +86,13 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
       //       };
     },
     parent() {
-      return props.parent;
+      //       if (props.parent) {
+      //         return props.parent;
+      //       }
+      if (!_elm) {
+        return null;
+      }
+      return _elm.parent();
     },
   };
   const _state = {
@@ -87,16 +112,57 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
   const bus = base<TheTypesOfEvents>();
   return {
     state: _state,
+    get styles() {
+      return _styles;
+    },
+    get $elm() {
+      return _elm;
+    },
+    get name() {
+      return props.name;
+    },
     //     parent: _methods.parent,
     //     width: _methods.width,
     //     height: _methods.height,
     css: _methods.css,
     transform: _methods.transform,
-    parent() {
-      return _parent;
+    getCss(name: keyof typeof _styles) {
+      return _styles[name];
     },
-    append(child: any) {
+    show() {
+      this.css({
+        display: "block",
+      });
+    },
+    hide() {
+      this.css({
+        display: "none",
+      });
+    },
+    parent() {
+      if (!_elm) {
+        return null;
+      }
+      return _elm.parent();
+    },
+    addClass(name: string) {
+      if (!_elm) {
+        _class = name;
+        // console.warn("请先调用 bind 方法");
+        return;
+      }
+      _class = name;
+      _elm.addClass(_class);
+    },
+    setAttr(property: string, value: string | number) {},
+    appendTo(child: any) {
       _children.push(child);
+    },
+    remove() {
+      // 将自己从 DOM 移除
+    },
+    setParent(parent: any) {
+      _parent = parent;
     },
     bind(node: TheElementInterface) {
       if (_mounted) {
@@ -104,17 +170,47 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
       }
       _elm = node;
       _mounted = true;
-      _methods.css(_styles);
+      if (Object.keys(_styles).length > 0) {
+        console.log("[Element]bind", props.name, _styles);
+        _methods.css(_styles);
+      }
+      //       _width = node.width();
+      //       _height = node.height();
     },
-    refresh(info: {}) {},
+    data() {
+      return _data;
+    },
+    refresh(info: Partial<{ width: number; height: number }>) {
+      if (info.width) {
+        _width = info.width;
+      }
+      if (info.height) {
+        _height = info.height;
+      }
+    },
     width() {
-      return _width;
+      if (!_elm) {
+        return _width;
+      }
+      return _elm.width();
     },
     height() {
-      return _height;
+      if (!_elm) {
+        return _height;
+      }
+      return _elm.height();
     },
     children() {
       return _children;
+    },
+    offset() {
+      if (!_elm) {
+        return {
+          top: 0,
+          left: 0,
+        };
+      }
+      return _elm.offset();
     },
     onStateChange(handler: Handler<TheTypesOfEvents[Events.StateChange]>) {
       bus.on(Events.StateChange, handler);

@@ -2,16 +2,14 @@ import { base, Handler } from "@/domains/base";
 
 import { ComicBookPage } from "./page";
 import { PageFlipEffect } from "./flip";
+import { ElementJQueryLikeCore } from "./element";
 // import { pagesInDOM } from "../turn/constants";
 
 /** 在 DOM 中需要渲染的页面数量 */
 const PageCountPrerender = 6;
-const PageWrapStyleByPosition: Record<
-  number,
-  { top: number; left: number | string; right: number | string; bottom: string }
-> = {
-  0: { top: 0, left: 0, right: "auto", bottom: "auto" },
-  1: { top: 0, right: 0, left: "auto", bottom: "auto" },
+const PageWrapStyleByPosition: Record<number, { top: string; left: string; right: string; bottom: string }> = {
+  0: { top: "0px", left: "0px", right: "auto", bottom: "auto" },
+  1: { top: "0px", right: "0px", left: "auto", bottom: "auto" },
 };
 const DefaultComicBookProps: ComicBookProps = {
   display: "double",
@@ -47,18 +45,24 @@ type ComicBookProps = {
   elevation: number;
 };
 export function ComicBook<T>(props: Partial<ComicBookProps>) {
-  const _props: ComicBookProps = Object.assign(DefaultComicBookProps, props);
+  const _opts: ComicBookProps = Object.assign(DefaultComicBookProps, props);
+
   let _initialized = false;
-  let _display = _props.display;
-  let _page = _props.page;
-  let _page_count = _props.page_count;
-  let _pages: ComicBookPage<T>[] = [];
+  let _display = _opts.display;
+  let _page: number | undefined = undefined;
+  let _page_count = _opts.page_count;
   let _pages_map: Record<number, ComicBookPage<T>> = {};
-  let _size = { width: _props.width, height: _props.height };
+  let _wrap_map: Record<number, ElementJQueryLikeCore> = {};
+  let _flip_map: Record<number, PageFlipEffect> = {};
+  let _place_map: Record<number, number> = {};
+  let _page_mv: number[] = [];
+  let _size = { width: _opts.width, height: _opts.height };
   let _view: number[] = [];
   let _range: number[] = [];
   /** 将要展示的页码 */
   let _target_page = 0;
+  const _elm = ElementJQueryLikeCore({ name: "book_elm", tag: "div", parent: null });
+  const _fparent = ElementJQueryLikeCore({ name: "book_fparent", tag: "div", parent: null });
 
   const _private_methods = {
     /**
@@ -71,11 +75,15 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
      * single
      * view(1) => [1]
      */
-    view(page: number) {
-      if (_display == "double") {
-        return page % 2 ? [page - 1, page] : [page, page + 1];
+    _view(page?: number) {
+      let p = page || _page;
+      if (!p) {
+        return [0];
       }
-      return [page];
+      if (_display == "double") {
+        return p % 2 ? [p - 1, p] : [p, p + 1];
+      }
+      return [p];
     },
     /**
      * Returns a range of `pagesInDOM` pages that should be in the DOM
@@ -93,9 +101,10 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     /**
      * Sets a page without effect
      */
-    fit_page(page: number) {
-      const next_view = _private_methods.view(page);
-      if (!_initialized || _page !== page) {
+    _fitPage(page: number, ok?: boolean) {
+      const next_view = _private_methods._view(page);
+      console.log("_fit page", _page, page, next_view);
+      if (_page !== page) {
         bus.emit(Events.Turning, { page, view: next_view });
         if (next_view.includes(1)) {
           bus.emit(Events.First);
@@ -104,15 +113,18 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           bus.emit(Events.Last);
         }
       }
+      console.log("[]_fitPage before _makeRange1", page, _pages_map);
       if (!_pages_map[page]) {
         return;
       }
       _target_page = page;
-      // _view = next_view;
-      _private_methods.make_range();
+      _methods.stop(ok);
+      _methods._removeFromDOM();
+      console.log("[]_fitPage before _makeRange2", page, _pages_map);
+      _private_methods._makeRange();
       bus.emit(Events.Turned, { page, view: next_view });
     },
-    turn_page(page: number) {
+    _turnPage(page: number) {
       let current = 0;
       let next = 0;
       const cur_view = [..._view];
@@ -127,7 +139,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _target_page = page;
 
       _private_methods.stop();
-      _private_methods.make_range();
+      _private_methods._makeRange();
 
       if (_display === "single") {
         current = cur_view[0];
@@ -139,32 +151,44 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         current = cur_view[0];
         next = next_view[1];
       }
-      console.log("[BIZ]comic_book - turn_page - result", current, next);
-      bus.emit(Events.Turned, { page, view: next_view });
+      const flip = _flip_map[current];
+      if (current) {
+        _target_page = next;
+        if (flip.opts.next !== next) {
+          flip.opts.next = next;
+          _place_map[next] = flip.opts.page;
+          // flip.opts.force = true;
+        }
+        if (_display === "single") {
+          flip.methods.turnPage(next_view[0] > cur_view[0] ? "br" : "bl");
+        } else {
+          flip.methods.turnPage();
+        }
+      }
+      // console.log("[BIZ]comic_book - turn_page - result", current, next);
+      // bus.emit(Events.Turned, { page, view: next_view });
     },
-    in_range(page: number) {
+    _necessPage(page: number) {
       const range = _methods.range(_page);
       return page >= range[0] && page <= range[1];
     },
-    set_page_loc(page: number) {
+    _setPageLoc(page: number) {
       const view = _methods.view();
-      console.log("[BIZ]comic_book/index set_page_z", page, view);
+
+      console.log("_setPageLoc", page, _page, _target_page, view);
       if (page === view[0] || page === view[1]) {
         // 在视图内
-        _pages_map[page].methods.wrap_css({ "z-index": _page_count, display: "" });
-        // data.pageWrap[page].css({ "z-index": data.totalPages, display: "" });
+        _pages_map[page].$wrap.css({ "z-index": _page_count, display: "" });
         return 1;
       } else if (
         (_display == "single" && page === view[0] + 1) ||
         (_display == "double" && page === view[0] - 2) ||
         page === view[1] + 2
       ) {
-        _pages_map[page].methods.wrap_css({ "z-index": _page_count - 1, display: "" });
-        // data.pageWrap[page].css({ "z-index": data.totalPages - 1, display: "" });
+        _pages_map[page].$wrap.css({ "z-index": _page_count - 1, display: "" });
         return 2;
       }
-      _pages_map[page].methods.wrap_css({ "z-index": 0, display: "none" });
-      // data.pageWrap[page].css({ "z-index": 0, display: "none" });
+      _pages_map[page].$wrap.css({ "z-index": 0, display: "none" });
       return 0;
     },
     stop() {
@@ -207,21 +231,34 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     end(args: unknown) {},
     pressed(args: unknown) {},
     released(args: unknown) {},
-    make_flip(page: number) {
+    _makeFlip(page: number) {
       const single = _display == "single";
       const even = page % 2;
+      const next = single && page === _page_count ? page - 1 : even || single ? page + 1 : page - 1;
       // 创建 flip 实例准备翻页动画
       const flip = PageFlipEffect({
         $turn: result,
+        get $elm() {
+          return _pages_map[page].$elm;
+        },
+        get $wrap() {
+          return _pages_map[page].$wrap;
+        },
         page: page,
-        next: single && page === _page_count ? page - 1 : even || single ? page + 1 : page - 1,
-        duration: _props.duration,
-        acceleration: _props.acceleration,
+        next,
+        next_page: _pages_map[next],
+        side: even ? "forward" : "backward",
+        duration: _opts.duration,
+        acceleration: _opts.acceleration,
         corners: single ? "all" : even ? "forward" : "backward",
-        backGradient: _props.gradients,
-        frontGradient: _props.gradients,
+        backGradient: _opts.gradients,
+        frontGradient: _opts.gradients,
       });
-      flip.methods.disable(_props.disabled);
+      _flip_map[page] = flip;
+      _pages_map[page].setFlip(flip);
+      _pages_map[page].methods.display();
+      flip.methods.initialize();
+      flip.methods.disable(_opts.disabled);
       flip.onFlip((e) => {
         console.log("[BIZ]comic_book/index make_flip - flip", e);
         _private_methods.flip();
@@ -245,54 +282,104 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _pages_map[page].methods.css({
         "background-image": `linear-gradient(to ${single || page % 2 ? "left" : "right"}, #fff 90%, #ddd 100%)`,
       });
-      //
+      bus.emit(Events.StateChange, { ..._state });
     },
     /**  Adds a page from internal data */
-    add_page(index: number) {
-      // console.log("[BIZ]comic_book - add_page - index", index);
-      if (!_pages_map[index]) {
+    _addPage(index: number) {
+      const element = _pages_map[index];
+      console.log("[BIZ]comic_book - add_page 1", index, element);
+      if (!element) {
         return;
       }
-      const page = _pages_map[index];
-      const size = {
-        width: _display === "double" ? _size.width / 2 : _size.width,
-        height: _size.height,
-      };
-      page.methods.css({
-        width: `${size.width}px`,
-        height: `${size.height}px`,
-      });
-      if (!page.methods.has_wrap_styles()) {
-        page.methods.wrap_css({
-          ...PageWrapStyleByPosition[_display === "double" ? index % 2 : 0],
-          position: "absolute",
-          overflow: "hidden",
-          width: `${size.width}px`,
-          height: `${size.height}px`,
-        });
-      }
-      const range = _methods.range();
-      console.log("[BIZ]comic_book/index add_page - before in_range", index, range);
-      if (_private_methods.in_range(index)) {
-        const tag = _private_methods.set_page_loc(index);
+      // if (!element.methods.has_wrap_styles()) {
+      //   element.methods.wrap_css({
+      //     ...PageWrapStyleByPosition[_display === "double" ? index % 2 : 0],
+      //     position: "absolute",
+      //     overflow: "hidden",
+      //     width: `${size.width}px`,
+      //     height: `${size.height}px`,
+      //   });
+      // }
+      // const range = _methods.range();
+      // console.log("[BIZ]comic_book/index add_page - before in_range", index, range);
+      if (_private_methods._necessPage(index)) {
+        if (!_wrap_map[index]) {
+          const size = {
+            width: _display === "double" ? _size.width / 2 : _size.width,
+            height: _size.height,
+          };
+          element.$elm.css({
+            width: `${size.width}px`,
+            height: `${size.height}px`,
+          });
+          _place_map[index] = index;
+          _wrap_map[index] = ElementJQueryLikeCore({
+            name: "book_wrap",
+            tag: "div",
+            parent: _elm,
+          });
+          _elm.appendTo(_wrap_map[index]);
+          element.$wrap.css({
+            position: "absolute",
+            overflow: "hidden",
+            width: `${size.width}px`,
+            height: `${size.height}px`,
+            ...PageWrapStyleByPosition[_display === "double" ? index % 2 : 0],
+          });
+          element.$elm.setParent(_wrap_map[index]);
+        }
+        const tag = _private_methods._setPageLoc(index);
+        console.log("[BIZ]comic_book/index _addPage before makeFlip", index, tag);
         if (!index || tag === 1) {
-          _private_methods.make_flip(index);
+          _private_methods._makeFlip(index);
         }
       }
     },
-    make_range() {
+    _makeRange() {
       const range = _methods.range();
-      console.log("[BIZ]comic_book/index make_range - before", range, _initialized);
+      // console.log("[BIZ]comic_book/index make_range - before", range, _initialized);
       for (let page = range[0]; page <= range[1]; page++) {
-        _private_methods.add_page(page);
+        _private_methods._addPage(page);
       }
     },
   };
   const _methods = {
     initialize() {
-      _methods.page(_page);
+      console.log("[BIZ]comic_book/index initialize", _opts);
+      _elm.css({ position: "relative", width: `${_opts.width}px`, height: `${_opts.height}px` });
+
+      _methods.display(_opts.display);
+      _methods.page(_opts.page);
+
       _initialized = true;
     },
+    display(display: "double" | "single") {
+      if (display === "single") {
+        if (!_pages_map[0]) {
+          _methods.stop();
+          _elm.css({ overflow: "hidden" });
+          // _pages_map[0] = ;
+        }
+        _pages_map[0].methods.wrap_css({ display: "block" });
+      } else {
+        if (_pages_map[0]) {
+          this.stop();
+          _elm.css({ overflow: "" });
+        }
+      }
+      _display = display;
+    },
+    stop(ok?: boolean) {
+      _page_mv = [];
+      if (_target_page) {
+        _page = _target_page;
+        _target_page = 0;
+      }
+      // _methods.update();
+    },
+    /**
+     * 添加页面
+     */
     addPage(page: ComicBookPage<T>, index: number) {
       let inc_page = false;
       let last_page = _page_count + 1;
@@ -308,24 +395,56 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         inc_page = true;
       }
       if (index >= 1 && index <= last_page) {
+        if (_initialized) {
+          _methods.stop();
+        }
         if (index in _pages_map) {
-          // move page?
+          _methods._movePages(index, 1);
         }
         if (inc_page) {
           _page_count = last_page;
         }
+        page.$elm.addClass("turn-page p" + page);
+        // console.log("before assign _pages_map[index]", index, page);
         _pages_map[index] = page;
-        //       page.methods.setSize(_size);
-        _private_methods.add_page(index);
-        // console.log("[BIZ]comic_book/index addPage - before _initialized", _initialized);
+        _private_methods._addPage(index);
+        // // console.log("[BIZ]comic_book/index addPage - before _initialized", _initialized);
         // if (_initialized) {
         //   _methods.update();
         // }
+        // _methods._removeFromDOM();
       }
+    },
+    _movePages(page: number, index: number) {},
+    _removeFromDOM() {
+      Object.keys(_pages_map).forEach((index) => {
+        if (!_private_methods._necessPage(Number(index))) {
+          _methods._removePageFromDOM(Number(index));
+        }
+      });
+    },
+    _removePageFromDOM(page: number) {
+      if (_flip_map[page]) {
+        if (_flip_map[page].$fwrapper) {
+          // _flip_map[page].$fwrapper.remove();
+        }
+        // _flip_map[page].$elm.remove();
+        delete _flip_map[page];
+      }
+      if (_pages_map[page]) {
+        _pages_map[page].$elm.remove();
+        delete _pages_map[page];
+      }
+      if (_wrap_map[page]) {
+        _wrap_map[page].remove();
+        delete _wrap_map[page];
+      }
+      delete _place_map[page];
     },
     view(page?: number) {
       const next_page = page || _page;
-      const view = _private_methods.view(next_page);
+      // console.log("[]view before _private_methods.view", next_page);
+      const view = _private_methods._view(next_page);
       if (_display == "double") {
         _view = [view[0] > 0 ? view[0] : 0, view[1] <= _page_count ? view[1] : 0];
         return _view;
@@ -338,10 +457,13 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     // },
     range(page?: number) {
       const next_page = page || _target_page || _page;
+      if (!next_page) {
+        return [];
+      }
       if (next_page < 1 || next_page > _page_count) {
         return [];
       }
-      const view = _private_methods.view(next_page);
+      const view = _private_methods._view(next_page);
       view[1] = view[1] || view[0];
       let left = PageCountPrerender - 1;
       let right = PageCountPrerender - 1;
@@ -359,12 +481,13 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       return _range;
     },
     update() {
-      _view = _private_methods.view(_page);
+      _view = _private_methods._view(_page || 0);
       Object.keys(_pages_map).forEach((index) => {
-        _private_methods.set_page_loc(Number(index));
+        _private_methods._setPageLoc(Number(index));
       });
     },
     refresh() {
+      // console.log("[BIZ]comic_book/index refresh", _flip_map);
       bus.emit(Events.StateChange, { ..._state });
     },
     prev() {
@@ -382,17 +505,19 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     },
     /** 翻到指定页 */
     page(page: number) {
-      console.log("[BIZ]comic_book/index page - before", page, _page_count);
+      // console.log("[BIZ]comic_book/index page - before", page, _page_count);
       if (page <= 0 || page > _page_count) {
         return;
       }
-      console.log("[BIZ]comic_book/index page - before _view.includes", _initialized, _view);
-      if (!_initialized || _view.includes(page)) {
-        console.log("[BIZ]comic_book - before fit_page", page);
-        _private_methods.fit_page(page);
+      const view = _methods.view();
+      // console.log("[BIZ]comic_book/index page - before _view.includes", _initialized, _view);
+      if (!_initialized || view.includes(page)) {
+        // console.log("[BIZ]comic_book - before fit_page", page);
+        console.log("[]turnMethods.page before _fitPage.call", page, view, _initialized);
+        _private_methods._fitPage(page);
       } else {
-        console.log("[BIZ]comic_book - before turn_page", page);
-        _private_methods.turn_page(page);
+        console.log("[]turnMethods.page before _turnPage.call", page, view, _initialized);
+        _private_methods._turnPage(page);
       }
       _page = page;
     },
@@ -406,6 +531,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
   const _state = {
     get pages() {
       return Object.values(_pages_map);
+    },
+    get flips() {
+      return Object.values(_flip_map);
     },
     get width() {
       return _size.width;
@@ -444,6 +572,12 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
   const result = {
     state: _state,
     methods: _methods,
+    get $elm() {
+      return _elm;
+    },
+    get $fparent() {
+      return _fparent;
+    },
     get initialized() {
       return _initialized;
     },
@@ -452,6 +586,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     },
     get pages() {
       return _pages_map;
+    },
+    get page_count() {
+      return _page_count;
     },
     onStateChange: (handler: Handler<TheTypesOfEvents[Events.StateChange]>) => {
       bus.on(Events.StateChange, handler);

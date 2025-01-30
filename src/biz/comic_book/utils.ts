@@ -8,7 +8,7 @@ type Point2D = {
 };
 
 let has3d = true;
-let vendor = "";
+// let vendor = "";
 
 /**
  * Gets basic attributes for a layer
@@ -123,7 +123,7 @@ export function getPrefix(): string {
 
   return vendor;
 }
-
+const vendor = "-webkit-";
 /**
  * Adds gradients to an element
  * @param obj - jQuery object
@@ -143,7 +143,9 @@ export function gradient(
     cols = [];
 
   if (vendor == "-webkit-") {
-    for (j = 0; j < numColors; j++) cols.push("color-stop(" + colors[j][0] + ", " + colors[j][1] + ")");
+    for (j = 0; j < numColors; j++) {
+      cols.push("color-stop(" + colors[j][0] + ", " + colors[j][1] + ")");
+    }
 
     obj.css({
       "background-image":
@@ -169,8 +171,9 @@ export function gradient(
       c = { x: x, y: inverse * x - inverse * corner.x + corner.y },
       segA = Math.sqrt(Math.pow(c.x - p0.x, 2) + Math.pow(c.y - p0.y, 2));
 
-    for (j = 0; j < numColors; j++)
+    for (j = 0; j < numColors; j++) {
       cols.push(" " + colors[j][1] + " " + ((segA + gradientDiagonal * colors[j][0]) * 100) / diagonal + "%");
+    }
 
     obj.css({ "background-image": vendor + "linear-gradient(" + -angle + "rad," + cols.join(",") + ")" });
   }

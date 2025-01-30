@@ -1,5 +1,6 @@
 import { base, Handler } from "@/domains/base";
 import { ElementJQueryLikeCore } from "./element";
+import { PageFlipEffect } from "./flip";
 
 type ComicBookPageProps<T> = {
   page: number;
@@ -12,9 +13,11 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
     // "background-image": "linear-gradient(to left, #fff 95%, #ddd 100%)",
   };
   let _wrap_styles = {};
-  let _wrap = ElementJQueryLikeCore({ parent: null, tag: "div", class: "wrap", children: [] });
-  let _page = ElementJQueryLikeCore({ parent: _wrap, tag: "div", class: "page" });
-  _wrap.append(_page);
+  let _flip: PageFlipEffect | null = null;
+  let _displayed = false;
+  let _wrap = ElementJQueryLikeCore({ name: "page_wrap", parent: null, tag: "div", class: "wrap", children: [] });
+  let _elm = ElementJQueryLikeCore({ name: "page_elm", parent: _wrap, tag: "div", class: "page" });
+  // _wrap.appendTo(_page);
 
   const _methods = {
     has_wrap_styles() {
@@ -29,8 +32,8 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
       bus.emit(Events.StateChange, { ..._state });
     },
     css(styles: Partial<typeof _styles>) {
-      console.log("[BIZ]comic_book/page css", styles);
-      _page.css(styles);
+      // console.log("[BIZ]comic_book/page css", styles);
+      _elm.css(styles);
       // _styles = {
       //   ..._styles,
       //   ...styles,
@@ -39,15 +42,22 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
       bus.emit(Events.StateChange, { ..._state });
     },
     transform(transform: string, origin?: string) {
-      _page.transform(transform, origin);
+      _elm.transform(transform, origin);
     },
     setSize(size: { width: number; height: number }) {
       _size = size;
+    },
+    display() {
+      _displayed = true;
+      bus.emit(Events.StateChange, { ..._state });
     },
   };
   const _state = {
     get page() {
       return props.page;
+    },
+    get side() {
+      return props.page % 2 ? "forward" : "backward";
     },
     get styles() {
       return _styles;
@@ -57,6 +67,9 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
     },
     get payload() {
       return props.payload;
+    },
+    get displayed() {
+      return _displayed;
     },
   };
   enum Events {
@@ -69,8 +82,21 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
   return {
     state: _state,
     methods: _methods,
-    $wrap: _wrap,
-    $page: _page,
+    get $wrap() {
+      return _wrap;
+    },
+    get $page() {
+      return _elm;
+    },
+    get $elm() {
+      return _elm;
+    },
+    get $flip() {
+      return _flip;
+    },
+    setFlip(flip: any) {
+      _flip = flip;
+    },
     onStateChange: (handler: Handler<TheTypesOfEvents[Events.StateChange]>) => {
       bus.on(Events.StateChange, handler);
     },
