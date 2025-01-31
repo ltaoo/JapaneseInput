@@ -52,6 +52,8 @@ export function PageFlipEffect(props: PageFlipProps) {
     handle: NodeJS.Timeout;
   } = null;
   let _initialized = false;
+  let _pageMv = 0;
+  let _point: { corner: FlipCorner2; x: number; y: number } | null = null;
   //   let _wrapper = ElementJQueryLikeCore({
   //     tag: "div",
   //     parent: null,
@@ -155,7 +157,7 @@ export function PageFlipEffect(props: PageFlipProps) {
       }
       _methods.resize(true);
     },
-    resize(full: boolean) {
+    resize(full?: boolean) {
       const width = props.$elm.width();
       const height = props.$elm.height();
       const size = Math.round(Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2)));
@@ -170,13 +172,13 @@ export function PageFlipEffect(props: PageFlipProps) {
           _ashadow?.css({ width: height, height: width });
         }
         if (_methods._backGradient()) {
-          _bshadow?.css({ width: 500, height: 400 });
+          _bshadow?.css({ width: width, height: height });
         }
       }
       const parent = props.$elm.parent();
-      if (parent?.$elm?.is(":visible")) {
-        _fwrapper?.css({ top: parent.offset().top, left: parent.offset().left });
-      }
+      // if (parent?.$elm?.is(":visible")) {
+      //   _fwrapper?.css({ top: parent.offset().top, left: parent.offset().left });
+      // }
       if (_opts.$turn) {
         const offset = _opts.$turn.$elm.offset();
         _fparent?.css({ top: -offset.top, left: -offset.left });
@@ -234,6 +236,13 @@ export function PageFlipEffect(props: PageFlipProps) {
             corner: allowed_corner.corner,
             x: np.x,
             y: np.y,
+          });
+        },
+        complete() {
+          bus.emit(Events.End, {
+            event: { stopPropagation: () => {}, preventDefault: () => {} },
+            turned: true,
+            flip: result,
           });
         },
       });
@@ -514,6 +523,62 @@ export function PageFlipEffect(props: PageFlipProps) {
       }
       _effect = null;
     },
+    hide() {
+      const folding = _methods._foldingPage();
+      props.$elm.css({ left: 0, top: 0, right: "auto", bottom: "auto" });
+      props.$elm.transform("", "0% 100%");
+      if (_wrapper) {
+        _wrapper.transform("", "0% 100%");
+      }
+      if (_fwrapper) {
+        _fwrapper.hide();
+      }
+      if (_bshadow) {
+        _bshadow.hide();
+      }
+      if (folding) {
+        folding.$elm.transform("", "0% 0%");
+      }
+    },
+    hideFoldedPage(animate?: boolean) {
+      if (!_data.point) {
+        return;
+      }
+      const p1 = _data.point;
+      function hide() {
+        _data.point = null;
+        _methods.hide();
+        bus.emit(Events.End, {
+          event: { stopPropagation: () => {}, preventDefault: () => {} },
+          flip: result,
+          turned: false,
+        });
+      }
+      if (animate) {
+        const p4 = _methods._c(p1.corner);
+        const top = p1.corner.substr(0, 1) === "t";
+        const delta = top ? Math.min(0, p1.y - p4.y) / 2 : Math.max(0, p1.y - p4.y) / 2;
+        const p2 = point2D(p1.x, p1.y + delta);
+        const p3 = point2D(p4.x, p4.y - delta);
+        _methods.animatef({
+          from: [0],
+          to: [1],
+          duration: 800,
+          // hiding: true,
+          frame(v) {
+            const np = bezier(p1, p2, p3, p4, v);
+            p1.x = np.x;
+            p1.y = np.y;
+            _methods._fold(p1);
+          },
+          complete() {
+            hide();
+          },
+        });
+      } else {
+        hide();
+      }
+    },
     animatef(opts?: {
       from: number[];
       to: number[];
@@ -611,7 +676,11 @@ export function PageFlipEffect(props: PageFlipProps) {
       flip: PageFlipEffect;
       corner: string;
     };
-    [Events.End]: void;
+    [Events.End]: {
+      event: { stopPropagation: () => void; preventDefault: () => void };
+      flip: PageFlipEffect;
+      turned: boolean;
+    };
     [Events.Pressed]: void;
     [Events.Released]: void;
     [Events.StateChange]: typeof _state;
@@ -652,6 +721,12 @@ export function PageFlipEffect(props: PageFlipProps) {
     },
     get page() {
       return _opts.page;
+    },
+    get pageMv() {
+      return _pageMv;
+    },
+    setPageMv(v: number) {
+      _pageMv = v;
     },
     onStateChange: (handler: Handler<TheTypesOfEvents[Events.StateChange]>) => {
       bus.on(Events.StateChange, handler);

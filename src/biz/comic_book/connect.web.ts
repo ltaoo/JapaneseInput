@@ -94,7 +94,7 @@ export function connect3(store: ComicBook<any>, $elm: HTMLElement, $fparent: HTM
 
 export function connect(store: ComicBookPage<any>, elms: { $page: HTMLElement; $wrap: HTMLElement }) {
   const { $page, $wrap } = elms;
-//   console.log("[Connect] 1 ------------------------ ", $page, $wrap);
+  //   console.log("[Connect] 1 ------------------------ ", $page, $wrap);
   bind($page, store.$page);
   bind($wrap, store.$wrap);
 }
@@ -126,5 +126,11 @@ export function connect2(
 export function connect4(store: PageFlipEffect, $elm: HTMLElement) {
   if (store.$wrapper) {
     bind($elm, store.$wrapper);
+  }
+}
+
+export function connect5(store: PageFlipEffect, $elm: HTMLElement) {
+  if (store.$bshadow) {
+    bind($elm, store.$bshadow);
   }
 }

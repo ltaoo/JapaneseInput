@@ -44,6 +44,11 @@ type ComicBookProps = {
    */
   elevation: number;
 };
+export enum PageFlipStep {
+  Static = "static",
+  Turning = "turning",
+  Turned = "turned",
+}
 export function ComicBook<T>(props: Partial<ComicBookProps>) {
   const _opts: ComicBookProps = Object.assign(DefaultComicBookProps, props);
 
@@ -59,6 +64,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
   let _size = { width: _opts.width, height: _opts.height };
   let _view: number[] = [];
   let _range: number[] = [];
+  let _step = PageFlipStep.Static;
   /** 将要展示的页码 */
   let _target_page = 0;
   const _elm = ElementJQueryLikeCore({ name: "book_elm", tag: "div", parent: null });
@@ -113,7 +119,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           bus.emit(Events.Last);
         }
       }
-      console.log("[]_fitPage before _makeRange1", page, _pages_map);
+      console.log("[]_fitPage before _makeRange1", page, _pages_map[page]);
       if (!_pages_map[page]) {
         return;
       }
@@ -129,6 +135,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       let next = 0;
       const cur_view = [..._view];
       const next_view = _methods.view(page);
+      _step = PageFlipStep.Turning;
       bus.emit(Events.Turning, { page, view: next_view });
       if (next_view.includes(1)) {
         bus.emit(Events.First);
@@ -138,7 +145,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       }
       _target_page = page;
 
-      _private_methods.stop();
+      _methods.stop();
       _private_methods._makeRange();
 
       if (_display === "single") {
@@ -175,40 +182,83 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     _setPageLoc(page: number) {
       const view = _methods.view();
 
-      console.log("_setPageLoc", page, _page, _target_page, view);
-      if (page === view[0] || page === view[1]) {
-        // 在视图内
+      const tag = (() => {
+        if (page === view[0] || page === view[1]) {
+          // 在视图内
+          return 1;
+        }
+        if (_display == "single" && page === view[0] + 1) {
+          // 视图页码的 前一页后后一页，在翻页时需要展示
+          return 2;
+        }
+        if (_display == "double" && (page === view[0] - 2 || page === view[1] + 2)) {
+          return 2;
+        }
+        // 完全不用展示
+        return 0;
+      })();
+      console.log("_setPageLoc", page, _page, view, tag);
+      if (tag === 1) {
         _pages_map[page].$wrap.css({ "z-index": _page_count, display: "" });
-        return 1;
-      } else if (
-        (_display == "single" && page === view[0] + 1) ||
-        (_display == "double" && page === view[0] - 2) ||
-        page === view[1] + 2
-      ) {
-        _pages_map[page].$wrap.css({ "z-index": _page_count - 1, display: "" });
-        return 2;
       }
-      _pages_map[page].$wrap.css({ "z-index": 0, display: "none" });
-      return 0;
+      if (tag === 2) {
+        _pages_map[page].$wrap.css({ "z-index": _page_count - 1, display: "" });
+      }
+      if (tag === 0) {
+        _pages_map[page].$wrap.css({ "z-index": 0, display: "none" });
+      }
+      return tag;
+    },
+    _foldingPage() {},
+    _moveFoldingPage(bool: boolean | null) {
+      const folding = _private_methods._foldingPage();
     },
     stop() {
+      _page_mv = [];
       if (_target_page) {
         _page = _target_page;
         _target_page = 0;
       }
+      Object.keys(_flip_map).forEach((page) => {
+        const $flip = _flip_map[Number(page)];
+        _private_methods._moveFoldingPage(null);
+        $flip.methods.hideFoldedPage();
+        _place_map[$flip.opts.next] = $flip.opts.next;
+      });
       _methods.update();
     },
-    flip() {},
-    add_motion_page() {
-      // var opts = $(this).data().f.opts,
-      // turn = opts.turn,
-      // dd = turn.data();
+    _removeMv(page: number) {
+      for (let i = 0; i < _page_mv.length; i++) {
+        if (_page_mv[i] === page) {
+          _page_mv.splice(i, 1);
+          return true;
+        }
+      }
+      return false;
+    },
+    _addMv(page: number) {
+      _private_methods._removeMv(page);
+      _page_mv.push(page);
+    },
+    _addMotionPage(page: number) {
       // opts.pageMv = opts.page;
-      // _private_methods._addMv(turn, opts.pageMv);
-      // dd.pagePlace[opts.next] = opts.page;
+      if (page) {
+        const $flip = _flip_map[page];
+        $flip.setPageMv($flip.opts.page);
+        // $flip.opts.pageMv = $flip.opts.page;
+        _private_methods._addMv($flip.pageMv);
+        console.log("[TURN]before dd.pagePlace[opts", $flip.opts.next, $flip.opts.page);
+        _place_map[$flip.opts.next] = $flip.opts.page;
+      }
+      _methods.update();
       // turn.turn('update');
     },
-    start(args: {
+    _flip(args: { flip: PageFlipEffect }) {
+      const { flip } = args;
+      bus.emit(Events.Turn, [flip.next]);
+      console.log("[BIZ]comic_book/index _flip", flip);
+    },
+    _start(args: {
       event: { stopPropagation: () => void; preventDefault: () => void };
       flip: PageFlipEffect;
       corner: string;
@@ -226,11 +276,28 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           }
         }
       }
-      _private_methods.add_motion_page();
+      _private_methods._addMotionPage(flip.page);
     },
-    end(args: unknown) {},
-    pressed(args: unknown) {},
-    released(args: unknown) {},
+    _end(args: {
+      event: { stopPropagation: () => void; preventDefault: () => void };
+      turned: boolean;
+      flip: PageFlipEffect;
+    }) {
+      const { event, turned, flip } = args;
+      event.stopPropagation();
+      console.log("[BIZ]comic_book/index _end", turned, flip.page, flip.next, _target_page);
+      if (turned || _target_page) {
+        if (_target_page === flip.next || _target_page === flip.page) {
+          _target_page = 0;
+          _private_methods._fitPage(_target_page || flip.next, true);
+        }
+      } else {
+        _private_methods._removeMv(flip.pageMv);
+        _methods.update();
+      }
+    },
+    _pressed(args: unknown) {},
+    _released(args: unknown) {},
     _makeFlip(page: number) {
       const single = _display == "single";
       const even = page % 2;
@@ -261,25 +328,32 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       flip.methods.disable(_opts.disabled);
       flip.onFlip((e) => {
         console.log("[BIZ]comic_book/index make_flip - flip", e);
-        _private_methods.flip();
+        _private_methods._flip({ flip });
       });
       flip.onStart((args) => {
         console.log("[BIZ]comic_book/index make_flip - start", args);
-        _private_methods.start(args);
+        _private_methods._start(args);
       });
       flip.onEnd((args) => {
         console.log("[BIZ]comic_book/index make_flip - end", args);
-        _private_methods.end(args);
+        _private_methods._end({
+          event: {
+            stopPropagation: () => {},
+            preventDefault: () => {},
+          },
+          turned: args.turned,
+          flip,
+        });
       });
       flip.onPressed((args) => {
         console.log("[BIZ]comic_book/index make_flip - pressed", args);
-        _private_methods.pressed(args);
+        _private_methods._pressed(args);
       });
       flip.onReleased((args) => {
         console.log("[BIZ]comic_book/index make_flip - released", args);
-        _private_methods.released(args);
+        _private_methods._released(args);
       });
-      _pages_map[page].methods.css({
+      _pages_map[page].$elm.css({
         "background-image": `linear-gradient(to ${single || page % 2 ? "left" : "right"}, #fff 90%, #ddd 100%)`,
       });
       bus.emit(Events.StateChange, { ..._state });
@@ -360,7 +434,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           _elm.css({ overflow: "hidden" });
           // _pages_map[0] = ;
         }
-        _pages_map[0].methods.wrap_css({ display: "block" });
+        _pages_map[0].$wrap.css({ display: "block" });
       } else {
         if (_pages_map[0]) {
           this.stop();
@@ -375,7 +449,13 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         _page = _target_page;
         _target_page = 0;
       }
-      // _methods.update();
+      // Object.keys(_flip_map).forEach((page) => {
+      //   const $flip = _flip_map[Number(page)];
+      //   _private_methods._moveFoldingPage(null);
+      //   $flip.methods.hideFoldedPage();
+      //   _place_map[$flip.opts.next] = $flip.opts.next;
+      // });
+      _methods.update();
     },
     /**
      * 添加页面
@@ -481,10 +561,90 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       return _range;
     },
     update() {
-      _view = _private_methods._view(_page || 0);
-      Object.keys(_pages_map).forEach((index) => {
-        _private_methods._setPageLoc(Number(index));
-      });
+      console.log("[TURN]update", _page_mv);
+      if (_page_mv.length && _page_mv[0] !== 0) {
+        let apage: number | undefined;
+        const pos = _methods.calculateZ(_page_mv);
+        const view = _private_methods._view(_target_page);
+        if (_place_map[view[0]] === view[0]) {
+          apage = view[0];
+        } else if (_place_map[view[1]] === view[1]) {
+          apage = view[1];
+        }
+        Object.keys(_wrap_map).forEach((index: string) => {
+          const page = Number(index);
+          const $page = _pages_map[page];
+          // const wrap = _wrap_map[page];
+          // console.log("[BIZ]comic_book/index update - before wrap.css", page, pos.pageV[page], pos.pageZ[page]);
+          $page.$wrap.css({ display: pos.pageV[page] ? "" : "none", "z-index": pos.pageZ[page] || 0 });
+          const $flip = _flip_map[page];
+          if ($flip) {
+            $flip.methods.z(pos.partZ[page] || 0);
+            if (pos.pageV[page]) {
+              $flip.methods.resize();
+            }
+            if (_target_page) {
+              $flip.methods.disable(true);
+            }
+          }
+        });
+      } else {
+        Object.keys(_wrap_map).forEach((index: string) => {
+          const page = Number(index);
+          const tag = _private_methods._setPageLoc(page);
+          const $flip = _flip_map[page];
+          if ($flip) {
+            $flip.methods.disable(_opts.disabled || tag !== 1);
+            $flip.methods.z();
+          }
+        });
+      }
+    },
+    calculateZ(mv: number[]) {
+      console.log("[BIZ]comic_book/index calculateZ 1", mv);
+      const view = _methods.view();
+      const current_page = view[0] || view[1];
+      const r: {
+        pageZ: { [key: number]: number };
+        partZ: { [key: number]: number };
+        pageV: { [key: number]: boolean };
+      } = {
+        pageZ: {},
+        partZ: {},
+        pageV: {},
+      };
+      function addView(page: number) {
+        const view = _methods.view(page);
+        if (view[0]) {
+          r.pageV[view[0]] = true;
+        }
+        if (view[1]) {
+          r.pageV[view[1]] = true;
+        }
+      }
+      for (let i = 0; i < mv.length; i++) {
+        const page = mv[i];
+        const next_page = _flip_map[page].opts.next;
+        const placed_page = _place_map[page];
+        addView(page);
+        addView(next_page);
+        let target_page = page;
+        if (_place_map[next_page] === next_page) {
+          target_page = next_page;
+        }
+        console.log("[BIZ]comic_book/index calculateZ - before r.pageZ[target_page]", {
+          i,
+          page,
+          next_page,
+          placed_page,
+          target_page,
+          _page_count,
+          current_page,
+        });
+        r.pageZ[target_page] = _page_count - Math.abs(current_page - target_page);
+        r.partZ[placed_page] = _page_count * 2 + Math.abs(current_page - target_page);
+      }
+      return r;
     },
     refresh() {
       // console.log("[BIZ]comic_book/index refresh", _flip_map);
@@ -547,8 +707,15 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     get range() {
       return _range;
     },
+    get page() {
+      return _page;
+    },
+    get step() {
+      return _step;
+    },
   };
   enum Events {
+    Turn,
     /** 开始翻页 */
     Turning,
     /** 翻页完成 */
@@ -560,6 +727,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     StateChange,
   }
   type TheTypesOfEvents = {
+    [Events.Turn]: number[];
     [Events.Turning]: { page: number; view: number[] };
     [Events.Turned]: { page: number; view: number[] };
     [Events.First]: void;
@@ -583,6 +751,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     },
     get display() {
       return _display;
+    },
+    get page() {
+      return _page;
     },
     get pages() {
       return _pages_map;

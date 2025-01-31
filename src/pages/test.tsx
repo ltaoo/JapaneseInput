@@ -1,10 +1,10 @@
 import { createSignal, For, JSX, onMount, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 
-import { ComicBook } from "@/biz/comic_book";
+import { ComicBook, PageFlipStep } from "@/biz/comic_book";
 import { ComicBookPage } from "@/biz/comic_book/page";
 import { ElementJQueryLikeCore, TreeNode } from "@/biz/comic_book/element";
-import { connect, connect2, connect3, connect4 } from "@/biz/comic_book/connect.web";
+import { connect, connect2, connect3, connect4, connect5 } from "@/biz/comic_book/connect.web";
 import { PageFlipEffect } from "@/biz/comic_book/flip";
 
 export function TestPage() {
@@ -16,7 +16,8 @@ export function TestPage() {
     width: 800,
     height: 500,
     page_count: 1000,
-    duration: 1000 * 30,
+    // duration: 1000 * 60 * 2,
+    duration: 3000,
     //     duration: 500,
   });
 
@@ -70,7 +71,7 @@ export function TestPage() {
       >
         <For each={state().pages}>
           {(page) => {
-            return <ComicPage store={page} />;
+            return <ComicPage book={$comic} store={page} />;
           }}
         </For>
         <div ref={$fparent} class="f_parent">
@@ -96,13 +97,16 @@ export function TestPage() {
             下一页
           </button>
         </div>
+        <div>{state().page}</div>
+        <div>{state().step}</div>
       </div>
     </div>
   );
 }
 
-function ComicPage(props: { store: ComicBookPage<{ text: string }> }) {
+function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookPage<{ text: string }> }) {
   const [state, setState] = createSignal(props.store.state);
+  const [book, setBook] = createSignal(props.book.state);
 
   let $wrap: HTMLDivElement | undefined;
   let $page: HTMLDivElement | undefined;
@@ -150,9 +154,21 @@ function ComicPage(props: { store: ComicBookPage<{ text: string }> }) {
             }
           }}
         >
-          {inner}
+          <Show
+            when={book().step === PageFlipStep.Turning && book().page && state().page === book().page}
+            fallback={inner}
+          >
+            <div></div>
+          </Show>
         </div>
-        <div class="b_shadow"></div>
+        <div
+          class="__a b_shadow"
+          onAnimationEnd={(event) => {
+            if (props.store.$flip) {
+              connect5(props.store.$flip, event.target as HTMLElement);
+            }
+          }}
+        ></div>
       </Show>
     </div>
   );
