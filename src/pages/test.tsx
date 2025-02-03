@@ -4,19 +4,21 @@ import { Dynamic } from "solid-js/web";
 import { ComicBook, PageFlipStep } from "@/biz/comic_book";
 import { ComicBookPage } from "@/biz/comic_book/page";
 import { ElementJQueryLikeCore, TreeNode } from "@/biz/comic_book/element";
-import { connect, connect2, connect3, connect4, connect5 } from "@/biz/comic_book/connect.web";
+import { connect, connect2, connect3, connect4, connect5, bind } from "@/biz/comic_book/connect.web";
 import { PageFlipEffect } from "@/biz/comic_book/flip";
+
+const pictures = ["/240.jpg", "/241.jpg", "/242.jpg", "/243.jpg", "/244.jpg", "/245.jpg", "/246.jpg", "/247.jpg"];
 
 export function TestPage() {
   let $fparent: HTMLDivElement | undefined;
   let $elm: HTMLDivElement | undefined;
 
   const $comic = ComicBook<{ text: string }>({
-    page: 2,
+    page: 5,
     width: 800,
     height: 500,
     page_count: 1000,
-    // duration: 1000 * 60 * 2,
+    // duration: 1000 * 60 * 10,
     duration: 3000,
     //     duration: 500,
   });
@@ -112,6 +114,7 @@ function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookP
   let $page: HTMLDivElement | undefined;
 
   props.store.onStateChange((state) => setState(state));
+  props.book.onStateChange((state) => setBook(state));
 
   //   return (
   //     <ElementJQueryLike store={props.store.$elm}>
@@ -133,18 +136,40 @@ function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookP
       id={`page-${state().page}`}
       data-side={state().side}
       classList={{
-        "page turn-page overflow-hidden": true,
+        "page turn-page relative overflow-hidden": true,
         "bg-white border": true,
       }}
     >
-      <div class="text-center text-3xl" style={{ "line-height": "500px" }}>
+      <div class="absolute h-[20px] bg-white text-black">{state().payload.text}</div>
+      <img class="w-full h-full object-cover" src={pictures[state().page]} />
+      {/* <div class="text-center text-3xl" style={{ "line-height": "500px" }}>
         {state().payload.text}
-      </div>
+      </div> */}
     </div>
   );
 
   return (
-    <div ref={$wrap} class="turn-page-wrapper" data-page={state().page}>
+    <div
+      ref={$wrap}
+      class="turn-page-wrapper"
+      data-page={state().page}
+      onTouchStart={(event) => {
+        if (props.store.$flip) {
+          props.store.$flip.methods._eventStart(event as any);
+        }
+      }}
+      onTouchMove={(event) => {
+        console.log("[ComicPage]_onTouchMove");
+        if (props.store.$flip) {
+          props.store.$flip.methods._eventMove(event as any);
+        }
+      }}
+      onTouchEnd={(event) => {
+        if (props.store.$flip) {
+          props.store.$flip.methods._eventEnd();
+        }
+      }}
+    >
       <Show when={state().displayed} fallback={inner}>
         <div
           class="__a wrapper"
@@ -202,11 +227,10 @@ function Flip(props: { store: PageFlipEffect }) {
       <div ref={$tmp} class="f_tmp">
         <div ref={$page} class="f_page">
           <div
-            //     ref={$page}
-            //     id={`page-${state().page}`}
-            //     data-side={state().side}
+            id={`page-${state().page}`}
+            data-side={state().side}
             classList={{
-              "page turn-page absolute inset-0 overflow-hidden": true,
+              "__a page turn-page absolute inset-0 overflow-hidden": true,
               "bg-white border": true,
             }}
             style={{
@@ -215,14 +239,22 @@ function Flip(props: { store: PageFlipEffect }) {
               position: "absolute",
               inset: "0px auto auto 0px",
               "transform-origin": "0% 0%",
-              transform: "rotate(90deg) translate3d(0px, -500px, 0px)",
+              transform:
+                props.store.side === "backward"
+                  ? `rotate(270deg) translate3d(-400px, 0px, 0px)`
+                  : `rotate(90deg) translate3d(0px, -500px, 0px)`,
             }}
+            // onAnimationEnd={(event) => {
+            //   const elm = ElementJQueryLikeCore({ name: "folding", parent: null, tag: "div", class: "page" });
+            //   const $page = props.store.$elm;
+            //   bind(event.currentTarget, elm);
+            //   props.store.methods.setFolding(elm);
+            // }}
           >
-            <div class="text-center text-3xl" style={{ "line-height": "500px" }}>
-              {state().payload.text}
-            </div>
+            <div class="absolute h-[20px] bg-white text-black">{state().payload.text}</div>
+            <img class="w-full h-full object-cover" src={pictures[state().page]} />
           </div>
-          <div ref={$ashadow} class="b_shadow"></div>
+          <div ref={$ashadow} class="a_shadow"></div>
         </div>
       </div>
     </div>

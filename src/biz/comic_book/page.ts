@@ -17,12 +17,10 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
   let _displayed = false;
   let _wrap = ElementJQueryLikeCore({ name: "page_wrap", parent: null, tag: "div", class: "wrap", children: [] });
   let _elm = ElementJQueryLikeCore({ name: "page_elm", parent: _wrap, tag: "div", class: "page" });
+  let _elm2 = ElementJQueryLikeCore({ name: "page_elm2", parent: _wrap, tag: "div", class: "page" });
   // _wrap.appendTo(_page);
 
   const _methods = {
-    transform(transform: string, origin?: string) {
-      _elm.transform(transform, origin);
-    },
     setSize(size: { width: number; height: number }) {
       _size = size;
     },

@@ -128,7 +128,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _methods._removeFromDOM();
       console.log("[]_fitPage before _makeRange2", page, _pages_map);
       _private_methods._makeRange();
+      _step = PageFlipStep.Turned;
       bus.emit(Events.Turned, { page, view: next_view });
+      bus.emit(Events.StateChange, { ..._state });
     },
     _turnPage(page: number) {
       let current = 0;
@@ -172,8 +174,6 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
           flip.methods.turnPage();
         }
       }
-      // console.log("[BIZ]comic_book - turn_page - result", current, next);
-      // bus.emit(Events.Turned, { page, view: next_view });
     },
     _necessPage(page: number) {
       const range = _methods.range(_page);
@@ -213,20 +213,20 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     _moveFoldingPage(bool: boolean | null) {
       const folding = _private_methods._foldingPage();
     },
-    stop() {
-      _page_mv = [];
-      if (_target_page) {
-        _page = _target_page;
-        _target_page = 0;
-      }
-      Object.keys(_flip_map).forEach((page) => {
-        const $flip = _flip_map[Number(page)];
-        _private_methods._moveFoldingPage(null);
-        $flip.methods.hideFoldedPage();
-        _place_map[$flip.opts.next] = $flip.opts.next;
-      });
-      _methods.update();
-    },
+    // stop() {
+    //   _page_mv = [];
+    //   if (_target_page) {
+    //     _page = _target_page;
+    //     _target_page = 0;
+    //   }
+    //   Object.keys(_flip_map).forEach((page) => {
+    //     const $flip = _flip_map[Number(page)];
+    //     _private_methods._moveFoldingPage(null);
+    //     $flip.methods.hideFoldedPage();
+    //     _place_map[$flip.opts.next] = $flip.opts.next;
+    //   });
+    //   _methods.update();
+    // },
     _removeMv(page: number) {
       for (let i = 0; i < _page_mv.length; i++) {
         if (_page_mv[i] === page) {
@@ -285,13 +285,15 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     }) {
       const { event, turned, flip } = args;
       event.stopPropagation();
-      console.log("[BIZ]comic_book/index _end", turned, flip.page, flip.next, _target_page);
+      console.log("[BIZ]comic_book/index _end 1", turned, flip.page, flip.next, _target_page);
       if (turned || _target_page) {
         if (_target_page === flip.next || _target_page === flip.page) {
           _target_page = 0;
+          console.log("[BIZ]comic_book/index _end 2");
           _private_methods._fitPage(_target_page || flip.next, true);
         }
       } else {
+        console.log("[BIZ]comic_book/index _end 3");
         _private_methods._removeMv(flip.pageMv);
         _methods.update();
       }
@@ -327,15 +329,15 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       flip.methods.initialize();
       flip.methods.disable(_opts.disabled);
       flip.onFlip((e) => {
-        console.log("[BIZ]comic_book/index make_flip - flip", e);
+        // console.log("[BIZ]comic_book/index make_flip - flip", e);
         _private_methods._flip({ flip });
       });
       flip.onStart((args) => {
-        console.log("[BIZ]comic_book/index make_flip - start", args);
+        // console.log("[BIZ]comic_book/index make_flip - start", args);
         _private_methods._start(args);
       });
       flip.onEnd((args) => {
-        console.log("[BIZ]comic_book/index make_flip - end", args);
+        // console.log("[BIZ]comic_book/index make_flip - end", args);
         _private_methods._end({
           event: {
             stopPropagation: () => {},
@@ -361,7 +363,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     /**  Adds a page from internal data */
     _addPage(index: number) {
       const element = _pages_map[index];
-      console.log("[BIZ]comic_book - add_page 1", index, element);
+      console.log("[BIZ]comic_book - _addPage 1", index, element);
       if (!element) {
         return;
       }
@@ -449,12 +451,12 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         _page = _target_page;
         _target_page = 0;
       }
-      // Object.keys(_flip_map).forEach((page) => {
-      //   const $flip = _flip_map[Number(page)];
-      //   _private_methods._moveFoldingPage(null);
-      //   $flip.methods.hideFoldedPage();
-      //   _place_map[$flip.opts.next] = $flip.opts.next;
-      // });
+      Object.keys(_flip_map).forEach((page) => {
+        const $flip = _flip_map[Number(page)];
+        _private_methods._moveFoldingPage(null);
+        $flip.methods.hideFoldedPage();
+        _place_map[$flip.opts.next] = $flip.opts.next;
+      });
       _methods.update();
     },
     /**
@@ -489,9 +491,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         _pages_map[index] = page;
         _private_methods._addPage(index);
         // // console.log("[BIZ]comic_book/index addPage - before _initialized", _initialized);
-        // if (_initialized) {
-        //   _methods.update();
-        // }
+        if (_initialized) {
+          _methods.update();
+        }
         // _methods._removeFromDOM();
       }
     },

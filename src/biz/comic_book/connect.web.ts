@@ -3,7 +3,7 @@ import { ComicBookPage } from "./page";
 import { PageFlipEffect } from "./flip";
 import { ElementJQueryLikeCore } from "./element";
 
-function bind(elm: HTMLElement, node: ElementJQueryLikeCore) {
+export function bind(elm: HTMLElement, node: ElementJQueryLikeCore) {
   node.bind({
     css(styles) {
       const processedStyles = Object.fromEntries(

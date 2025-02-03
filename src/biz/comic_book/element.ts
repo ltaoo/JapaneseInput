@@ -71,6 +71,7 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
     },
     css(styles: Partial<typeof _styles>) {
       //       console.log("[BIZ]comic_book/element css", _elm, styles);
+
       if (!_elm) {
         _styles = {
           ..._styles,
@@ -211,6 +212,18 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
         };
       }
       return _elm.offset();
+    },
+    is(attr: string) {
+      if (!_elm) {
+        return false;
+      }
+      return _elm.is(attr);
+    },
+    get _ins() {
+      return _elm;
+    },
+    destroy() {
+      bus.destroy();
     },
     onStateChange(handler: Handler<TheTypesOfEvents[Events.StateChange]>) {
       bus.on(Events.StateChange, handler);
