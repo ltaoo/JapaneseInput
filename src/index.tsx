@@ -41,7 +41,7 @@ function Application() {
   });
 
   return (
-    <div class={"screen overflow-hidden"}>
+    <div class={"screen w-screen h-screen"}>
       <Show when={!state().ready}>
         <div class="flex items-center justify-center w-full h-full">
           <div class="flex flex-col items-center text-slate-500">
@@ -56,7 +56,7 @@ function Application() {
             const routeName = subView.name;
             const PageContent = pages[routeName as Exclude<PageKeys, "root">];
             return (
-              <KeepAliveRouteView class="absolute inset-0 opacity-100 dark:bg-black" store={subView} index={i()}>
+              <KeepAliveRouteView class="z-10 fixed left-1/2 top-0 w-full h-full mx-auto bg-w-bg-3 shadow-xl opacity-100 -translate-x-1/2" store={subView} index={i()}>
                 <PageContent
                   app={app}
                   history={history}

@@ -48,6 +48,8 @@ export enum PageFlipStep {
   Static = "static",
   Turning = "turning",
   Turned = "turned",
+  Start = "start",
+  End = "end",
 }
 export function ComicBook<T>(props: Partial<ComicBookProps>) {
   const _opts: ComicBookProps = Object.assign(DefaultComicBookProps, props);
@@ -112,6 +114,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       console.log("_fit page", _page, page, next_view);
       if (_page !== page) {
         bus.emit(Events.Turning, { page, view: next_view });
+        // bus.emit(Events.StateChange, { ..._state });
         if (next_view.includes(1)) {
           bus.emit(Events.First);
         }
@@ -130,6 +133,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _private_methods._makeRange();
       _step = PageFlipStep.Turned;
       bus.emit(Events.Turned, { page, view: next_view });
+      // console.log("[BIZ]comic_book/index _turnPage ============================ TURNED");
       bus.emit(Events.StateChange, { ..._state });
     },
     _turnPage(page: number) {
@@ -137,7 +141,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       let next = 0;
       const cur_view = [..._view];
       const next_view = _methods.view(page);
+      // console.log("[BIZ]comic_book/index _turnPage ============================ TURNING");
       _step = PageFlipStep.Turning;
+      // bus.emit(Events.StateChange, { ..._state });
       bus.emit(Events.Turning, { page, view: next_view });
       if (next_view.includes(1)) {
         bus.emit(Events.First);
@@ -179,7 +185,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       const range = _methods.range(_page);
       return page >= range[0] && page <= range[1];
     },
-    _setPageLoc(page: number) {
+    _setPageLoc(page: number, from?: string) {
       const view = _methods.view();
 
       const tag = (() => {
@@ -197,7 +203,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         // 完全不用展示
         return 0;
       })();
-      console.log("_setPageLoc", page, _page, view, tag);
+      console.log("_setPageLoc", _page_mv, page, _page, view, tag, _step);
       if (tag === 1) {
         _pages_map[page].$wrap.css({ "z-index": _page_count, display: "" });
       }
@@ -205,6 +211,8 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         _pages_map[page].$wrap.css({ "z-index": _page_count - 1, display: "" });
       }
       if (tag === 0) {
+        // setTimeout(() => {
+        // }, 0);
         _pages_map[page].$wrap.css({ "z-index": 0, display: "none" });
       }
       return tag;
@@ -213,20 +221,6 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     _moveFoldingPage(bool: boolean | null) {
       const folding = _private_methods._foldingPage();
     },
-    // stop() {
-    //   _page_mv = [];
-    //   if (_target_page) {
-    //     _page = _target_page;
-    //     _target_page = 0;
-    //   }
-    //   Object.keys(_flip_map).forEach((page) => {
-    //     const $flip = _flip_map[Number(page)];
-    //     _private_methods._moveFoldingPage(null);
-    //     $flip.methods.hideFoldedPage();
-    //     _place_map[$flip.opts.next] = $flip.opts.next;
-    //   });
-    //   _methods.update();
-    // },
     _removeMv(page: number) {
       for (let i = 0; i < _page_mv.length; i++) {
         if (_page_mv[i] === page) {
@@ -250,8 +244,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         console.log("[TURN]before dd.pagePlace[opts", $flip.opts.next, $flip.opts.page);
         _place_map[$flip.opts.next] = $flip.opts.page;
       }
-      _methods.update();
-      // turn.turn('update');
+      _methods.update("addMotionPage");
     },
     _flip(args: { flip: PageFlipEffect }) {
       const { flip } = args;
@@ -264,6 +257,9 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       corner: string;
     }) {
       const { event, flip, corner } = args;
+      // _step = PageFlipStep.Start;
+      // console.log("[BIZ]comic_book/index _turnPage ============================ START");
+      // bus.emit(Events.StateChange, { ..._state });
       if (_display === "single") {
         const left = corner.charAt(1) === "l";
         if ((_page === 1 && left) || (_page === _page_count && !left)) {
@@ -284,18 +280,21 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       flip: PageFlipEffect;
     }) {
       const { event, turned, flip } = args;
+      // _step = PageFlipStep.End;
+      // bus.emit(Events.StateChange, { ..._state });
+      // console.log("[BIZ]comic_book/index _turnPage ============================ END");
       event.stopPropagation();
-      console.log("[BIZ]comic_book/index _end 1", turned, flip.page, flip.next, _target_page);
+      // console.log("[BIZ]comic_book/index _end 1", turned, flip.page, flip.next, _target_page);
       if (turned || _target_page) {
         if (_target_page === flip.next || _target_page === flip.page) {
           _target_page = 0;
-          console.log("[BIZ]comic_book/index _end 2");
+          // console.log("[BIZ]comic_book/index _end 2");
           _private_methods._fitPage(_target_page || flip.next, true);
         }
       } else {
-        console.log("[BIZ]comic_book/index _end 3");
+        // console.log("[BIZ]comic_book/index _end 3");
         _private_methods._removeMv(flip.pageMv);
-        _methods.update();
+        _methods.update("end");
       }
     },
     _pressed(args: unknown) {},
@@ -363,20 +362,10 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     /**  Adds a page from internal data */
     _addPage(index: number) {
       const element = _pages_map[index];
-      console.log("[BIZ]comic_book - _addPage 1", index, element);
+      // console.log("[BIZ]comic_book - _addPage 1", index, element);
       if (!element) {
         return;
       }
-      // if (!element.methods.has_wrap_styles()) {
-      //   element.methods.wrap_css({
-      //     ...PageWrapStyleByPosition[_display === "double" ? index % 2 : 0],
-      //     position: "absolute",
-      //     overflow: "hidden",
-      //     width: `${size.width}px`,
-      //     height: `${size.height}px`,
-      //   });
-      // }
-      // const range = _methods.range();
       // console.log("[BIZ]comic_book/index add_page - before in_range", index, range);
       if (_private_methods._necessPage(index)) {
         if (!_wrap_map[index]) {
@@ -394,7 +383,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
             tag: "div",
             parent: _elm,
           });
-          _elm.appendTo(_wrap_map[index]);
+          // _elm.appendTo(_wrap_map[index]);
           element.$wrap.css({
             position: "absolute",
             overflow: "hidden",
@@ -402,10 +391,10 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
             height: `${size.height}px`,
             ...PageWrapStyleByPosition[_display === "double" ? index % 2 : 0],
           });
-          element.$elm.setParent(_wrap_map[index]);
+          // element.$elm.setParent(_wrap_map[index]);
         }
         const tag = _private_methods._setPageLoc(index);
-        console.log("[BIZ]comic_book/index _addPage before makeFlip", index, tag);
+        // console.log("[BIZ]comic_book/index _addPage before makeFlip", index, tag);
         if (!index || tag === 1) {
           _private_methods._makeFlip(index);
         }
@@ -457,7 +446,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         $flip.methods.hideFoldedPage();
         _place_map[$flip.opts.next] = $flip.opts.next;
       });
-      _methods.update();
+      _methods.update("stop");
     },
     /**
      * 添加页面
@@ -492,7 +481,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         _private_methods._addPage(index);
         // // console.log("[BIZ]comic_book/index addPage - before _initialized", _initialized);
         if (_initialized) {
-          _methods.update();
+          _methods.update("addPage");
         }
         // _methods._removeFromDOM();
       }
@@ -522,6 +511,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
         delete _wrap_map[page];
       }
       delete _place_map[page];
+      bus.emit(Events.StateChange, { ..._state });
     },
     view(page?: number) {
       const next_page = page || _page;
@@ -562,8 +552,8 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       _range = [Math.max(1, view[0] - left), Math.min(_page_count, view[1] + right)];
       return _range;
     },
-    update() {
-      console.log("[TURN]update", _page_mv);
+    update(from?: string) {
+      console.log("[TURN]update", _page_mv, from);
       if (_page_mv.length && _page_mv[0] !== 0) {
         let apage: number | undefined;
         const pos = _methods.calculateZ(_page_mv);
@@ -593,7 +583,7 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
       } else {
         Object.keys(_wrap_map).forEach((index: string) => {
           const page = Number(index);
-          const tag = _private_methods._setPageLoc(page);
+          const tag = _private_methods._setPageLoc(page, from);
           const $flip = _flip_map[page];
           if ($flip) {
             $flip.methods.disable(_opts.disabled || tag !== 1);
@@ -762,6 +752,12 @@ export function ComicBook<T>(props: Partial<ComicBookProps>) {
     },
     get page_count() {
       return _page_count;
+    },
+    get $pages() {
+      return Object.values(_pages_map);
+    },
+    get $flips() {
+      return Object.values(_flip_map);
     },
     onStateChange: (handler: Handler<TheTypesOfEvents[Events.StateChange]>) => {
       bus.on(Events.StateChange, handler);

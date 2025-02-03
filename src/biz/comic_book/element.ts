@@ -23,6 +23,8 @@ export type TheElementInterface = {
   show: () => void;
   hide: () => void;
   is: (attr: string) => boolean;
+  _elm: HTMLElement;
+  get elm(): HTMLElement;
 };
 
 export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
@@ -172,7 +174,7 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
       _elm = node;
       _mounted = true;
       if (Object.keys(_styles).length > 0) {
-        console.log("[Element]bind", props.name, _styles);
+        // console.log("[Element]bind", props.name, _styles);
         _methods.css(_styles);
       }
       //       _width = node.width();
@@ -221,6 +223,9 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
     },
     get _ins() {
       return _elm;
+    },
+    get elm() {
+      return _elm?.elm;
     },
     destroy() {
       bus.destroy();

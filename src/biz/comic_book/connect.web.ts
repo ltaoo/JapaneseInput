@@ -83,6 +83,10 @@ export function bind(elm: HTMLElement, node: ElementJQueryLikeCore) {
       }
       return null;
     },
+    _elm: elm,
+    get elm() {
+      return elm;
+    },
   });
   Object.assign(elm.style, node.styles);
 }
