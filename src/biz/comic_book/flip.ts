@@ -21,6 +21,8 @@ const Corners: {
 type FlipCorner2 = "tl" | "bl" | "tr" | "br";
 // type FlipCorner = "backward" | "forward" | "all";
 type PageFlipProps = {
+  width: number;
+  height: number;
   disabled?: boolean;
   page: number;
   next: number;
@@ -41,7 +43,7 @@ type PageFlipProps = {
 export function PageFlipEffect(props: PageFlipProps) {
   let _opts = props;
 
-  let _size = { width: 400, height: 500 };
+  let _size = { width: props.width, height: props.height };
   let _elevation = 50;
   let _data: { corner: null | FlipCorner2; point: null | { corner: FlipCorner2; x: number; y: number } } = {
     corner: null,
@@ -55,26 +57,6 @@ export function PageFlipEffect(props: PageFlipProps) {
   let _initialized = false;
   let _pageMv = 0;
   let _point: { corner: FlipCorner2; x: number; y: number } | null = null;
-  //   let _wrapper = ElementJQueryLikeCore({
-  //     tag: "div",
-  //     parent: null,
-  //   });
-  //   let _fpage = ElementJQueryLikeCore({
-  //     tag: "div",
-  //     parent: null,
-  //   });
-  //   let _fwrapper = ElementJQueryLikeCore({
-  //     tag: "div",
-  //     parent: null,
-  //   });
-  //   let _ashadow = ElementJQueryLikeCore({
-  //     tag: "div",
-  //     parent: null,
-  //   });
-  //   let _bshadow = ElementJQueryLikeCore({
-  //     tag: "div",
-  //     parent: null,
-  //   });
   let _wrapper: ElementJQueryLikeCore | null = null;
   let _fpage: ElementJQueryLikeCore | null = null;
   let _tmp: ElementJQueryLikeCore | null = null;
@@ -124,12 +106,16 @@ export function PageFlipEffect(props: PageFlipProps) {
         name: "flip_wrapper",
         tag: "div",
         parent: null,
+        width: _size.width,
+        height: _size.height,
       });
       _wrapper.css(divAtt(0, 0, props.$elm.getCss("z-index")).css);
       _fwrapper = ElementJQueryLikeCore({
         name: "flip_fwrapper",
         tag: "div",
         parent: null,
+        width: _size.width,
+        height: _size.height,
       });
       // console.log("[Flip]_addPageWrapper 2 ------------------------ ", props.$elm, parent);
       if (parent) {
@@ -141,9 +127,17 @@ export function PageFlipEffect(props: PageFlipProps) {
         name: "flip_fpage",
         tag: "div",
         parent: null,
+        width: _size.width,
+        height: _size.height,
       });
       _fpage.css({ cursor: "default" });
-      _tmp = ElementJQueryLikeCore({ name: "flip_tmp", tag: "div", parent: _fwrapper });
+      _tmp = ElementJQueryLikeCore({
+        name: "flip_tmp",
+        tag: "div",
+        parent: _fwrapper,
+        width: _size.width,
+        height: _size.height,
+      });
       _tmp.css(divAtt(0, 0, 0, "visible").css);
 
       _fpage.appendTo(_tmp);
@@ -155,6 +149,8 @@ export function PageFlipEffect(props: PageFlipProps) {
           name: "flip_a_shadow",
           tag: "div",
           parent: null,
+          width: _size.width,
+          height: _size.height,
         });
         _ashadow.css(divAtt(0, 0, 1).css);
         _fpage.appendTo(_ashadow);
@@ -162,8 +158,8 @@ export function PageFlipEffect(props: PageFlipProps) {
       _methods.resize(true);
     },
     resize(full?: boolean) {
-      const width = 400;
-      const height = 500;
+      const width = _size.width;
+      const height = _size.height;
       // const width = props.$elm.width();
       // const height = props.$elm.height();
       const size = Math.round(Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2)));
@@ -209,9 +205,14 @@ export function PageFlipEffect(props: PageFlipProps) {
       //       console.log("[Flip]_backGradient", _opts.backGradient);
       if (gradient) {
         if (!_bshadow) {
-          _bshadow = ElementJQueryLikeCore({ name: "flip_b_shadow", tag: "div", parent: null });
+          _bshadow = ElementJQueryLikeCore({
+            name: "flip_b_shadow",
+            tag: "div",
+            parent: null,
+            width: _size.width,
+            height: _size.height,
+          });
           _bshadow.css(divAtt(0, 0, 1).css);
-          //   _bshadow.css({ width: 500, height: 400 });
           _bshadow.appendTo(props.$elm.parent());
         }
         return true;
@@ -230,6 +231,13 @@ export function PageFlipEffect(props: PageFlipProps) {
 
       // 开始翻页
       bus.emit(Events.Flip);
+
+      // const np = bezier(p1, p1, p4, p4, 0.2);
+      // _methods._showFoldedPage({
+      //   corner: allowed_corner.corner,
+      //   x: np.x,
+      //   y: np.y,
+      // });
 
       _methods.animatef({
         from: [0],
@@ -342,8 +350,7 @@ export function PageFlipEffect(props: PageFlipProps) {
       const folding = _methods._foldingPage();
       let tan = Math.tan(alpha);
       let ac = _opts.acceleration;
-      //       let h = _wrapper.height();
-      const h = 640;
+      let h = _wrapper.height();
       let o = _methods._c(point.corner);
       const top = point.corner.substr(0, 1) === "t";
       const left = point.corner.substr(1, 1) === "l";
@@ -437,15 +444,18 @@ export function PageFlipEffect(props: PageFlipProps) {
         // 如果当前是第五页，往下翻一页，第五页属于「正在翻的那页」，而且在翻页过程中还要展示第七页
         // 如果直接隐藏第五页，正在翻的那页就不对了，透出了下面的第七页
         // 所以第五页需要保留，而且在翻页动画过程中，它会逐渐地消失
-        if (_wrapper) {
-          const v1 = translate(-tr.x + mvW - aliasingFk, -tr.y + mvH, ac) + rotate(-a);
-          const v2 = rotate(a) + translate(tr.x + aliasingFk, tr.y, ac);
-          // console.log("[Flip]_transform", props.$elm.elm, _wrapper.elm);
-          props.$elm.css(v);
-          props.$elm.transform(v2, x2);
-          _wrapper.transform(v1, x2);
-          // console.log("[Flip]_transform", props.$elm.elm);
+        // console.log("[Flip]_transform", props.page, props.$elm.elm, _wrapper?.elm, _wrapper);
+        const $$wrap = props.$turn.methods.getWrap2(props.page);
+        const v1 = translate(-tr.x + mvW - aliasingFk, -tr.y + mvH, ac) + rotate(-a);
+        const v2 = rotate(a) + translate(tr.x + aliasingFk, tr.y, ac);
+        // console.log("[Flip]_transform", props.$elm.elm, _wrapper.elm);
+        props.$elm.css(v);
+        props.$elm.transform(v2, x2);
+        if ($$wrap) {
+          $$wrap.transform(v1, x2);
         }
+        // _wrapper.transform(v1, x2);
+        // console.log("[Flip]_transform", props.$elm.elm);
         if (_fwrapper) {
           const v1 = translate(-tr.x + mv.x + mvW, -tr.y + mv.y + mvH, ac);
           const v2 = rotate(-a);
@@ -871,6 +881,9 @@ export function PageFlipEffect(props: PageFlipProps) {
     },
     get pageMv() {
       return _pageMv;
+    },
+    get size() {
+      return _size;
     },
     setPageMv(v: number) {
       _pageMv = v;

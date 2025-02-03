@@ -2,6 +2,8 @@ import { base, Handler } from "@/domains/base";
 
 type ElementJQueryLikeCoreProps = {
   name: string;
+  width: number;
+  height: number;
   class?: string;
   tag: string;
   parent: null | ElementJQueryLikeCore;
@@ -29,8 +31,8 @@ export type TheElementInterface = {
 
 export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
   let _mounted = false;
-  let _width = 400;
-  let _height = 500;
+  let _width = props.width;
+  let _height = props.height;
   let _styles: {
     cursor?: string;
     "pointer-events"?: string;
@@ -171,8 +173,8 @@ export function ElementJQueryLikeCore(props: ElementJQueryLikeCoreProps) {
       if (_mounted) {
         return;
       }
-      _elm = node;
       _mounted = true;
+      _elm = node;
       if (Object.keys(_styles).length > 0) {
         // console.log("[Element]bind", props.name, _styles);
         _methods.css(_styles);

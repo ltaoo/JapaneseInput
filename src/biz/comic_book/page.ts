@@ -15,9 +15,33 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
   let _wrap_styles = {};
   let _flip: PageFlipEffect | null = null;
   let _displayed = false;
-  let _wrap = ElementJQueryLikeCore({ name: "page_wrap", parent: null, tag: "div", class: "wrap", children: [] });
-  let _elm = ElementJQueryLikeCore({ name: "page_elm", parent: _wrap, tag: "div", class: "page" });
-  let _elm2 = ElementJQueryLikeCore({ name: "page_elm2", parent: _wrap, tag: "div", class: "page" });
+  let _wrap = ElementJQueryLikeCore({
+    name: "page_wrap",
+    parent: null,
+    tag: "div",
+    class: "wrap",
+    children: [],
+    width: 0,
+    height: 0,
+  });
+  let _elm = ElementJQueryLikeCore({
+    name: "page_elm",
+    parent: _wrap,
+    tag: "div",
+    class: "page",
+    children: [],
+    width: 0,
+    height: 0,
+  });
+  let _elm2 = ElementJQueryLikeCore({
+    name: "page_elm2",
+    parent: _wrap,
+    tag: "div",
+    class: "page",
+    children: [],
+    width: 0,
+    height: 0,
+  });
   // _wrap.appendTo(_page);
 
   const _methods = {
@@ -61,6 +85,9 @@ export function ComicBookPage<T>(props: ComicBookPageProps<T>) {
     methods: _methods,
     get opts() {
       return props;
+    },
+    get page() {
+      return props.page;
     },
     get $wrap() {
       return _wrap;

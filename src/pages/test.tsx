@@ -19,8 +19,8 @@ export function TestPage() {
   const $view = new ScrollViewCore({});
   const $comic = ComicBook<{ text: string }>({
     page: 5,
-    width: 800,
-    height: 500,
+    width: 738,
+    height: 600,
     page_count: 1000,
     // duration: 1000 * 60 * 2,
     duration: 800,
@@ -119,27 +119,27 @@ export function TestPage() {
     // });
     let _initial = false;
     let _x = 0;
-    document.addEventListener("wheel", (event) => {
-      // event.preventDefault();
-      if (!_initial) {
-        _x = event.clientX;
-        _initial = true;
-      }
-      const distance = event.clientX - _x;
-      if ($flip) {
-        const corner = {
-          corner: "br",
-          x: 400 - distance * 48,
-          y: 500,
-        };
-        console.log("[TestPage]_onWheel", distance, corner.x);
-        $flip.methods._showFoldedPage(corner);
-      }
-    });
+    // document.addEventListener("wheel", (event) => {
+    //   // event.preventDefault();
+    //   if (!_initial) {
+    //     _x = event.clientX;
+    //     _initial = true;
+    //   }
+    //   const distance = event.clientX - _x;
+    //   if ($flip) {
+    //     const corner = {
+    //       corner: "br",
+    //       x: 400 - distance * 48,
+    //       y: 500,
+    //     };
+    //     console.log("[TestPage]_onWheel", distance, corner.x);
+    //     $flip.methods._showFoldedPage(corner);
+    //   }
+    // });
   });
 
   return (
-    <div class="pt-12 px-4 min-h-screen bg-w-bg-0">
+    <div class="min-h-screen bg-w-bg-0">
       <div
         ref={$elm}
         class="relative"
@@ -189,6 +189,7 @@ function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookP
 
   let $wrap: HTMLDivElement | undefined;
   let $page: HTMLDivElement | undefined;
+  let $inner: HTMLDivElement | undefined;
 
   props.store.onStateChange((state) => setState(state));
   props.book.onStateChange((state) => setBook(state));
@@ -206,6 +207,12 @@ function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookP
       connect(props.store, { $page, $wrap });
       //       props.store.$flip?.methods.initialize();
     }
+    // if ($inner) {
+    //   console.log("[ComicPage]_onMount", $inner, props.store.$flip);
+    //   if (props.store.$flip) {
+    //     connect4(props.store.$flip, $inner);
+    //   }
+    // }
   });
 
   const inner = (
@@ -249,31 +256,42 @@ function ComicPage(props: { book: ComicBook<{ text: string }>; store: ComicBookP
       //   }
       // }}
     >
-      <Show when={state().displayed} fallback={inner}>
-        <div
-          class="__a wrapper"
-          onAnimationEnd={(event) => {
-            if (props.store.$flip) {
-              connect4(props.store.$flip, event.target as HTMLElement);
-            }
-          }}
+      <div
+        class="__a inner_wrapper wrapper"
+        data-page={props.store.page}
+        onAnimationEnd={(event) => {
+          console.log("[ComicPage]_onMount", props.store.$flip);
+          const elm = event.currentTarget as HTMLElement;
+          const $elm = ElementJQueryLikeCore({
+            tag: "div",
+            class: "wrapper",
+            parent: null,
+            name: "inner_wrapper",
+            width: elm.clientWidth,
+            height: elm.clientHeight,
+          });
+          bind(elm, $elm);
+          props.book.methods._saveWrap2(props.store.page, $elm);
+          if (props.store.$flip) {
+            connect4(props.store.$flip, elm);
+          }
+        }}
+      >
+        <Show
+          when={book().step === PageFlipStep.Turning && book().page && state().page === book().page}
+          fallback={inner}
         >
-          <Show
-            when={book().step === PageFlipStep.Turning && book().page && state().page === book().page}
-            fallback={inner}
-          >
-            <div></div>
-          </Show>
-        </div>
-        <div
-          class="__a b_shadow"
-          onAnimationEnd={(event) => {
-            if (props.store.$flip) {
-              connect5(props.store.$flip, event.target as HTMLElement);
-            }
-          }}
-        ></div>
-      </Show>
+          <div></div>
+        </Show>
+      </div>
+      <div
+        class="__a b_shadow"
+        onAnimationEnd={(event) => {
+          if (props.store.$flip) {
+            connect5(props.store.$flip, event.target as HTMLElement);
+          }
+        }}
+      ></div>
     </div>
   );
 }
@@ -314,15 +332,15 @@ function FlipPage(props: { store: PageFlipEffect }) {
                 "bg-white border": true,
               }}
               style={{
-                width: "400px",
-                height: "500px",
+                width: `${props.store.size.width}px`,
+                height: `${props.store.size.height}px`,
                 position: "absolute",
                 inset: "0px auto auto 0px",
                 "transform-origin": "0% 0%",
                 transform:
                   props.store.side === "backward"
-                    ? `rotate(270deg) translate3d(-400px, 0px, 0px)`
-                    : `rotate(90deg) translate3d(0px, -500px, 0px)`,
+                    ? `rotate(270deg) translate3d(-${props.store.size.width}px, 0px, 0px)`
+                    : `rotate(90deg) translate3d(0px, -${props.store.size.height}px, 0px)`,
               }}
               // onAnimationEnd={(event) => {
               //   const elm = ElementJQueryLikeCore({ name: "folding", parent: null, tag: "div", class: "page" });

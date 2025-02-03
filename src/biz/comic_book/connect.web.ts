@@ -88,7 +88,7 @@ export function bind(elm: HTMLElement, node: ElementJQueryLikeCore) {
       return elm;
     },
   });
-  Object.assign(elm.style, node.styles);
+  // Object.assign(elm.style, node.styles);
 }
 
 export function connect3(store: ComicBook<any>, $elm: HTMLElement, $fparent: HTMLElement) {
