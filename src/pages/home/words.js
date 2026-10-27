@@ -1,0 +1,92 @@
+export const words = [
+      {
+        hiragana: "あお",
+        romaji: "ao",
+        word: "青",
+        meaning: "蓝色，青色，绿色",
+      },
+      {
+        hiragana: "あか",
+        romaji: "aka",
+        word: "赤",
+        meaning: "红色",
+      },
+      {
+        hiragana: "あき",
+        romaji: "aki",
+        word: "秋",
+        meaning: "秋天",
+      },
+      {
+        hiragana: "あさ",
+        romaji: "asa",
+        word: "朝",
+        meaning: "早上，早晨",
+      },
+      {
+        hiragana: "あさごはん",
+        romaji: "asa",
+        word: "朝ご飯",
+        meaning: "早饭",
+      },
+      {
+        hiragana: "あさって",
+        romaji: "asatte",
+        word: "あさって",
+        meaning: "后天",
+      },
+      {
+        hiragana: "あし",
+        romaji: "ashi",
+        word: "足",
+        meaning: "脚，腿",
+      },
+      {
+        hiragana: "あした",
+        romaji: "ashita",
+        word: "明日",
+        meaning: "明天",
+      },
+      {
+        hiragana: "あたま",
+        romaji: "atama",
+        word: "頭",
+        meaning: "头，脑袋",
+      },
+      {
+        hiragana: "あと",
+        romaji: "ato",
+        word: "後",
+        meaning: "后面，后方；以后",
+      },
+      {
+        hiragana: "あに",
+        romaji: "ani",
+        word: "兄",
+        meaning: "哥哥",
+      },
+      {
+        hiragana: "あね",
+        romaji: "ane",
+        word: "姉",
+        meaning: "姐姐",
+      },
+      {
+        hiragana: "あめ",
+        romaji: "ame",
+        word: "雨",
+        meaning: "雨",
+      },
+      {
+        hiragana: "あめ",
+        romaji: "ame",
+        word: "飴",
+        meaning: "糖，饴糖",
+      },
+      {
+        hiragana: "いえ",
+        romaji: "ie",
+        word: "家",
+        meaning: "房屋；家，家庭",
+      },
+    ];

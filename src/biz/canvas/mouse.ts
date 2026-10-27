@@ -25,8 +25,8 @@ export function CanvasPointer(props: { canvas: CanvasCore }) {
   let _pressing = false;
   /** 当前是否处于拖动 */
   let _dragging = false;
-  let _timer: null | NodeJS.Timer = null;
-  let _timer2: null | NodeJS.Timer = null;
+  let _timer: null | ReturnType<typeof setTimeout> = null;
+  let _timer2: null | ReturnType<typeof setTimeout> = null;
   let _click_count = 0;
   let _out_grid = true;
   const state = {
