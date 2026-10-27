@@ -1,5 +1,3 @@
-import { JSX } from "solid-js/jsx-runtime";
-
 import { Application } from "@/domains/app";
 import { HistoryCore } from "@/domains/history";
 import { RouteViewCore } from "@/domains/route_view";
@@ -24,4 +22,4 @@ export type ViewComponentProps = {
     scrollView?: ScrollViewCore;
   };
 };
-export type ViewComponent = (props: ViewComponentProps) => JSX.Element;
+export type ViewComponent = (props: ViewComponentProps) => unknown;

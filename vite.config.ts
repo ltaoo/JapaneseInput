@@ -1,8 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-import { UserConfigExport, defineConfig } from "vite";
-import solidPlugin from "vite-plugin-solid";
+import { defineConfig } from "vite";
 
 const pkg = (() => {
   try {
@@ -18,12 +17,17 @@ const config = defineConfig(({ mode }) => {
     server: {
       host: "127.0.0.1",
     },
-    plugins: [solidPlugin()],
     resolve: {
       alias: {
-        "lucide-solid": require.resolve("lucide-solid").replace("cjs", "esm"),
+        "@timeless/timeless-dom": path.resolve(__dirname, "vendor/timeless/dom.js"),
+        "@timeless/shadcn/globals.css": path.resolve(__dirname, "vendor/timeless/shadcn.css"),
+        "@timeless/shadcn": path.resolve(__dirname, "vendor/timeless/shadcn.js"),
+        "@timeless/timeless": path.resolve(__dirname, "vendor/timeless/index.js"),
         "@": path.resolve(__dirname, "./src"),
       },
+    },
+    optimizeDeps: {
+      include: ["@timeless/timeless", "@timeless/timeless-dom", "@timeless/shadcn"],
     },
     esbuild: {
       drop: mode === "production" ? ["console", "debugger"] : [],
@@ -45,6 +49,11 @@ const config = defineConfig(({ mode }) => {
           },
         },
       },
+    },
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.js"],
+      threads: false,
     },
   };
 });

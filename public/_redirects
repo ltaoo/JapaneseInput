@@ -1,0 +1,2 @@
+# Pages strips index from /home/index; let the app select its home route.
+/home/ / 302

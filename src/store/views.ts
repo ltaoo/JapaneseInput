@@ -1,14 +1,12 @@
-import { JSXElement } from "solid-js";
-
-import { HomeLayout } from "@/pages/home/layout";
-import { HomeIndexPage } from "@/pages/home";
-import { LoginPage } from "@/pages/login";
-import { RegisterPage } from "@/pages/register";
-import { NotFoundPage } from "@/pages/notfound";
-import { CanvasDrawingManagePage } from "@/pages/home/manage";
-import { HiraganaChallengePage } from "@/pages/home/challenge1";
-import { WordChallengePage } from "@/pages/home/challenge2";
-import { ParagraphAnalysisPage } from "@/pages/home/analysis";
+import HomeLayout from "@/pages/home/layout.js";
+import HomeIndexPage from "@/pages/home/index.js";
+import LoginPage from "@/pages/login/index.js";
+import RegisterPage from "@/pages/register/index.js";
+import NotFoundPage from "@/pages/notfound/index.js";
+import CanvasDrawingManagePage from "@/pages/home/manage.js";
+import HiraganaChallengePage from "@/pages/home/challenge1.js";
+import WordChallengePage from "@/pages/home/challenge2.js";
+import ParagraphAnalysisPage from "@/pages/home/analysis.js";
 import { ViewComponent } from "@/store/types";
 
 import { PageKeys } from "./routes";
