@@ -19,6 +19,7 @@ export function RecognizeCore(props: {
   let _result1: string[] = [];
   let _text: string | null = null;
   let _finish = false;
+  let _destroyed = false;
   const state = {
     get pending() {
       return _pending;
@@ -93,91 +94,108 @@ export function RecognizeCore(props: {
     $canvas,
     async recognize() {
       _finish = false;
-      if (_pending) {
+      if (_pending || _destroyed) {
         return;
       }
       const url = $canvas.layers.path.getDataURI();
       _pending = true;
       bus.emit(Events.Change, { ...state });
-      /**
-       *    const lang = 'eng';
-       *    const langPath = `https://unpkg.com/@tesseract.js-data/${lang}/4.0.0_best_int`;
-       *    // A worker is created once and used every time a user uploads a new file.
-       *    const worker = await Tesseract.createWorker(lang, 1, {
-       *        corePath: 'https://unpkg.com/tesseract.js-core@v5',
-       *        workerPath: 'https://unpkg.com/tesseract.js@v5/dist/worker.min.js',
-       *        langPath: langPath,
-       *        logger: function(m){console.log(m);}
-       *    });
-       */
-      if (_worker1 === null) {
-        // Step 2: Create a Blob object
-        const r = await new RequestCore(() =>
-          file_request.get<string>(
-            "/worker.min.js",
-            {},
-            {
-              headers: {
-                ContentType: "text/plain; charset=utf-8",
-              },
-            }
-          )
-        ).run();
-        if (r.error) {
-          app.tip({
-            text: [r.error.message],
-          });
-          return;
+      try {
+        /**
+         *    const lang = 'eng';
+         *    const langPath = `https://unpkg.com/@tesseract.js-data/${lang}/4.0.0_best_int`;
+         *    // A worker is created once and used every time a user uploads a new file.
+         *    const worker = await Tesseract.createWorker(lang, 1, {
+         *        corePath: 'https://unpkg.com/tesseract.js-core@v5',
+         *        workerPath: 'https://unpkg.com/tesseract.js@v5/dist/worker.min.js',
+         *        langPath: langPath,
+         *        logger: function(m){console.log(m);}
+         *    });
+         */
+        if (_worker1 === null) {
+          // Step 2: Create a Blob object
+          const r = await new RequestCore(() =>
+            file_request.get<string>(
+              "/worker.min.js",
+              {},
+              {
+                headers: {
+                  ContentType: "text/plain; charset=utf-8",
+                },
+              }
+            )
+          ).run();
+          if (r.error) {
+            app.tip({
+              text: [r.error.message],
+            });
+            return;
+          }
+          const jsCode = `globalThis.__TESSERACT_CORE_DOMAIN__ = "${window.location.origin}";${r.data}`;
+          const blob = new Blob([jsCode], { type: "application/javascript" });
+          // Step 3: Create a Blob URL
+          const blobURL = URL.createObjectURL(blob);
+          try {
+            _worker1 = await createWorker("lt", OEM.LSTM_ONLY, {
+              // langPath: "https://jp.t.funzm.com/"
+              // workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@v${version}/dist/worker.min.js`,
+              // workerPath: `/worker.min.js`,
+              workerPath: blobURL,
+            });
+          } finally {
+            URL.revokeObjectURL(blobURL);
+          }
+          if (_destroyed) {
+            await _worker1.terminate();
+            _worker1 = null;
+            return;
+          }
         }
-        const jsCode = `globalThis.__TESSERACT_CORE_DOMAIN__ = "${window.location.origin}";${r.data}`;
-        const blob = new Blob([jsCode], { type: "application/javascript" });
-        // Step 3: Create a Blob URL
-        const blobURL = URL.createObjectURL(blob);
-        _worker1 = await createWorker("lt", OEM.LSTM_ONLY, {
-          // langPath: "https://jp.t.funzm.com/"
-          // workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@v${version}/dist/worker.min.js`,
-          // workerPath: `/worker.min.js`,
-          workerPath: blobURL,
+        //       if (_worker2 === null) {
+        //         _worker2 = await createWorker("jpn", OEM.LSTM_ONLY, {
+        //           workerPath: `https://jp.t.funzm.com/worker.min.js`,
+        //         });
+        //       }
+        _worker1.setParameters({
+          // tessedit_char_whitelist:
+          //   "あいうえおかきくけこさしすせそたちつてとにぬねのはひふへほまみむめもやゆよらりるれろわをん",
+          tessedit_pageseg_mode: PSM.RAW_LINE,
         });
+        // const ret = await Tesseract.recognize(url, "jpn");
+        const { data: data1 } = await _worker1.recognize(url);
+        if (_destroyed) return;
+        //       const { data: data2 } = await _worker2.recognize(url);
+        _pending = false;
+        _result1 = data1.symbols
+          .map((symbol) => {
+            return symbol.choices.map((c) => c.text);
+          })
+          .reduce((t, arr) => {
+            return t.concat(arr);
+          }, [])
+          .slice(0, 3);
+        //       console.log("jps result", _result1);
+        //       _result2 = data2.symbols
+        //         .map((symbol) => {
+        //           return symbol.choices.map((c) => c.text);
+        //         })
+        //         .reduce((t, arr) => {
+        //           return t.concat(arr);
+        //         }, []);
+        //       console.log("jpn result", _result2);
+        _finish = true;
+        if (_result1.length === 1) {
+          // _finish = false;
+          _text = _result1[0];
+          bus.emit(Events.Submit, { text: _text });
+        }
+        bus.emit(Events.Change, { ...state });
+      } catch (error) {
+        if (!_destroyed) app.tip({ text: [(error as Error).message] });
+      } finally {
+        _pending = false;
+        if (!_destroyed) bus.emit(Events.Change, { ...state });
       }
-      //       if (_worker2 === null) {
-      //         _worker2 = await createWorker("jpn", OEM.LSTM_ONLY, {
-      //           workerPath: `https://jp.t.funzm.com/worker.min.js`,
-      //         });
-      //       }
-      _worker1.setParameters({
-        // tessedit_char_whitelist:
-        //   "あいうえおかきくけこさしすせそたちつてとにぬねのはひふへほまみむめもやゆよらりるれろわをん",
-        tessedit_pageseg_mode: PSM.RAW_LINE,
-      });
-      // const ret = await Tesseract.recognize(url, "jpn");
-      const { data: data1 } = await _worker1.recognize(url);
-      //       const { data: data2 } = await _worker2.recognize(url);
-      _pending = false;
-      _result1 = data1.symbols
-        .map((symbol) => {
-          return symbol.choices.map((c) => c.text);
-        })
-        .reduce((t, arr) => {
-          return t.concat(arr);
-        }, [])
-        .slice(0, 3);
-      //       console.log("jps result", _result1);
-      //       _result2 = data2.symbols
-      //         .map((symbol) => {
-      //           return symbol.choices.map((c) => c.text);
-      //         })
-      //         .reduce((t, arr) => {
-      //           return t.concat(arr);
-      //         }, []);
-      //       console.log("jpn result", _result2);
-      _finish = true;
-      if (_result1.length === 1) {
-        // _finish = false;
-        _text = _result1[0];
-        bus.emit(Events.Submit, { text: _text });
-      }
-      bus.emit(Events.Change, { ...state });
     },
     async select(text: string) {
       _text = text;
@@ -196,6 +214,12 @@ export function RecognizeCore(props: {
       return bus.on(Events.Change, handler);
     },
     onSubmit,
+    destroy() {
+      _destroyed = true;
+      void _worker1?.terminate();
+      _worker1 = null;
+      bus.destroy();
+    },
   };
 }
 

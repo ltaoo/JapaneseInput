@@ -1,0 +1,25 @@
+{
+  "version": "0.34.2",
+  "files": {
+    "index.js": {
+      "source": "packages/timeless/dist/index.esm.js",
+      "sha256": "09022e1845b5dc1088e1dcde80c6aae87a2005ab30e090d72fbc8ad70e8f6e5c"
+    },
+    "dom.js": {
+      "source": "packages/timeless-dom/dist/timeless.dom.esm.js",
+      "sha256": "430f953d1f9d77dbd9c2128446809cf57e2c97f9b9774f3211957846657f18aa"
+    },
+    "shadcn.js": {
+      "source": "packages/shadcn/dist/index.esm.js",
+      "sha256": "bd401e40a7ddcf154489ef301c29c3bae56ae9400065dcbd71a4049f13413ea3"
+    },
+    "shadcn.css": {
+      "source": "packages/shadcn/dist/timeless.shadcn.css",
+      "sha256": "063985a57f7fec7f5f4f4321a4f5d2c78c56b79f580bd9baa9577d2efcb0d927"
+    },
+    "LICENSE": {
+      "source": "LICENSE",
+      "sha256": "f79ef82986179cd3204f6a6adce258c7d1b08c24f51f34b69d635bb48ed42106"
+    }
+  }
+}
