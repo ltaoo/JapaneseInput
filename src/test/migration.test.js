@@ -5,6 +5,9 @@ import { JapaneseInput } from "@/components/JapaneseInput/index.js";
 import HomePageView from "@/pages/home/index.js";
 import { WordChallengePageModel } from "@/pages/home/challenge2.model.js";
 import { HiraganaChallengePageModel } from "@/pages/home/challenge1.model.js";
+import AnalysisPageView from "@/pages/home/analysis.js";
+import { BookPageModel } from "@/pages/test.model.js";
+import BookPageView from "@/pages/test.js";
 import { AnalysisPageModel } from "@/pages/home/analysis.model.js";
 import { AuthPageModel } from "@/pages/auth.model.js";
 import { DrawingManagePageModel } from "@/pages/home/manage.model.js";
@@ -152,14 +155,84 @@ describe("Timeless migration", () => {
     model.methods.destroy();
   });
 
-  it("keeps sentence analysis validation and the existing example result", () => {
+  it("validates sentence input and uses API results and their grammar for examples", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ texts: [{ text: "食べた", kana: "たべた", type: "动词", original: "食べる", conjugation: "た形" }], explain: "吃过了", pattern: "动词た形", tense: "过去" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ examples: [{ japanese: "飲んだ", chinese: "喝过了" }] }) });
+    vi.stubGlobal("fetch", fetch);
     const model = AnalysisPageModel({ app });
-    model.methods.submit();
+    await model.methods.submit();
     expect(app.tip).toHaveBeenCalledWith({ text: ["请先输入要分析的内容"] });
-    model.ui.input$.setValue("以下で実現できたので本書をノウハウとして共有しておく");
-    model.methods.submit();
-    expect(model.state.analysis.value.segments.map((s) => s.text).join("")).toBe(model.ui.input$.value);
-    expect(model.state.analysis.value.explain).toContain("诀窍");
+    model.ui.input$.setValue("食べた");
+    const pending = model.methods.submit();
+    await model.methods.submit();
+    await pending;
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ text: "食べた", pattern: "动词た形" });
+    expect(model.state.analysis.value.explain).toBe("吃过了");
+    expect(model.state.analysis.value.segments[0].conjugation).toBe("た形");
+    expect(model.state.examples.value[0].japanese).toBe("飲んだ");
+    expect(model.ui.submit$.state.loading).toBe(false);
+    model.methods.destroy();
+  });
+
+  it("retains successful analysis when examples fail and recovers after HTTP errors", async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ texts: [{ text: "雨", kana: "あめ" }], explain: "雨", pattern: "名词" }) })
+      .mockResolvedValueOnce({ ok: false, text: async () => "upstream failed" })
+      .mockRejectedValueOnce(new Error("offline"));
+    vi.stubGlobal("fetch", fetch);
+    const model = AnalysisPageModel({ app });
+    model.ui.input$.setValue("雨");
+    await model.methods.submit();
+    expect(model.state.analysis.value.explain).toBe("雨");
+    expect(model.state.examples.value).toEqual([]);
+    expect(model.state.error.value).toContain("例句生成失败");
+    await model.methods.submit();
+    expect(model.state.error.value).toContain("offline");
+    expect(model.state.loading.value).toBe(false);
+    expect(model.ui.submit$.state.loading).toBe(false);
+    model.methods.destroy();
+  });
+
+  it("renders readings, conjugations, grammar, examples and API updates with Timeless", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ texts: [{ text: "歩いた", kana: "あるいた", original: "歩く", conjugation: "た形", type: "动词" }], explain: "走过了", tense: "过去", aspect: "完成体", pattern: "动词た形", conclusion: "过去的动作" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ examples: [{ japanese: "走った", chinese: "跑过了" }] }) }));
+    const root = await mount(AnalysisPageView({ app }));
+    expect(root.querySelector('[data-n="segment-conjugation"]')).not.toBeNull();
+    expect(root.querySelector('[data-n="analysis-pattern"]')).not.toBeNull();
+    const input = root.querySelector("textarea");
+    input.value = "歩いた";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    root.querySelector('[data-n="analyze-sentence"]').click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(root.textContent).toContain("跑过了");
+    expect(root.querySelector('[data-n="sentence-translation"]').textContent).toBe("走过了");
+    expect(root.querySelector('[data-n="analysis-tense"]').textContent).toContain("过去");
+    expect(root.querySelector('[data-n="segment-conjugation"]').textContent).toContain("歩く");
+  });
+
+  it("bounds book turns, blocks concurrent animation and cleans up its timer", async () => {
+    const root = await mount(BookPageView());
+    expect(root.querySelector('[data-n="book-page"]').getAttribute("src")).toBe("/240.jpg");
+    vi.useFakeTimers();
+    const model = BookPageModel();
+    model.methods.turn(-1);
+    expect(model.state.flipping.value).toBe(false);
+    model.methods.turn(1);
+    model.methods.turn(1);
+    vi.advanceTimersByTime(500);
+    expect(model.state.page.value).toBe(2);
+    for (let i = 0; i < 5; i++) { model.methods.turn(1); vi.advanceTimersByTime(500); }
+    expect(model.state.page.value).toBe(6);
+    model.methods.turn(-1);
+    vi.advanceTimersByTime(500);
+    expect(model.state.page.value).toBe(4);
+    model.methods.turn(-1);
+    model.methods.destroy();
+    vi.advanceTimersByTime(500);
+    expect(model.state.page.value).toBe(4);
   });
 
   it("uses the existing account service and restores the loading state", async () => {

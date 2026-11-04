@@ -244,3 +244,23 @@ button, input, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .study-button, .study-input, [data-n="challenge-progress-fill"] { transition: none; }
 }
+
+[data-n="analysis-status"], [data-n="analysis-error"] { margin-top: 12px; font-size: 14px; }
+[data-n="analysis-status"], [data-n="example-chinese"] { color: var(--study-muted); }
+[data-n="analysis-error"] { color: var(--study-error); overflow-wrap: anywhere; }
+[data-n="analysis-legend"] { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; font-size: 13px; }
+[data-n="legend-item"] { padding: 0; }
+[data-n="segment-conjugation"] { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); color: var(--study-indigo); font-size: .45em; white-space: nowrap; }
+[data-n="analysis-details"], [data-n="analysis-examples"] { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--study-line); font-size: 14px; line-height: 1.9; }
+[data-n="analysis-details"] { display: grid; gap: 16px; }
+[data-n="analysis-detail-label"], [data-n="analysis-examples-title"] { font-weight: 600; }
+[data-n="analysis-detail-value"] { overflow-wrap: anywhere; }
+[data-n="analysis-example"] { margin-top: 16px; }
+[data-n="book-controls"] { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 24px 0; }
+[data-n="book-spread"] { position: relative; display: flex; width: min(100%, 800px); aspect-ratio: 4 / 3; margin: auto; perspective: 1600px; background: white; }
+[data-n="book-page"] { width: 50%; height: 100%; object-fit: contain; border: 1px solid var(--study-line); }
+[data-n="book-flipping-page"] { position: absolute; right: 0; width: 50%; height: 100%; object-fit: contain; background: white; transform-origin: left; animation: book-next .5s ease-in-out forwards; }
+[data-n="book-flipping-page"][data-direction="-1"] { right: auto; left: 0; transform-origin: right; animation-name: book-prev; }
+@keyframes book-next { to { transform: rotateY(-180deg); } }
+@keyframes book-prev { to { transform: rotateY(180deg); } }
+@media (prefers-reduced-motion: reduce) { [data-n="book-flipping-page"] { animation: none; } }

@@ -12,6 +12,7 @@ export function HomeLayoutModel({ view, history }) {
       { name: "root.home_layout.index", title: "首页" },
       { name: "root.home_layout.challenge1", title: "平假名挑战" },
       { name: "root.home_layout.challenge2", title: "单词挑战" },
+      { name: "root.home_layout.analysis", title: "句子分析" },
     ],
     methods: {
       navigate(name) { history.push(name); },

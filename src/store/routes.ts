@@ -49,6 +49,7 @@ const configure = {
           },
         },
       },
+      test: { title: "翻页演示", pathname: "/test" },
       login: {
         title: "登录",
         pathname: "/login",

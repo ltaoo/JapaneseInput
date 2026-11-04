@@ -1,3 +1,4 @@
+import TestPage from "@/pages/test.js";
 import HomeLayout from "@/pages/home/layout.js";
 import HomeIndexPage from "@/pages/home/index.js";
 import LoginPage from "@/pages/login/index.js";
@@ -18,6 +19,7 @@ export const pages: Omit<Record<PageKeys, ViewComponent>, "root"> = {
   "root.home_layout.challenge1": HiraganaChallengePage,
   "root.home_layout.challenge2": WordChallengePage,
   "root.home_layout.analysis": ParagraphAnalysisPage,
+  "root.test": TestPage,
   "root.login": LoginPage,
   "root.register": RegisterPage,
   "root.notfound": NotFoundPage,
