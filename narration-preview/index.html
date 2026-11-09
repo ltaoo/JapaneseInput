@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN" data-n="preview-document">
+  <head data-n="document-head">
+    <meta charset="UTF-8" data-n="character-encoding" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" data-n="viewport-settings" />
+    <title data-n="document-title">VoiceStudio</title>
+    <link rel="stylesheet" href="./style.css" data-n="preview-styles" />
+  </head>
+  <body data-n="preview-body">
+    <main data-n="narration-preview">
+      <header data-n="page-header">
+        <a href="./" data-n="brand">VoiceStudio<span data-n="brand-sound">▥</span></a>
+        <span data-n="preview-label" data-i18n="preview"></span>
+      </header>
+      <div data-n="story-switcher" role="group"></div>
+      <section data-n="reading-workspace">
+        <div data-n="script-panel">
+          <div data-n="script-heading"><span data-n="language-label" lang="ja"></span><span data-n="script-label" data-i18n="script"></span></div>
+          <h1 data-n="narration-title" lang="ja"></h1>
+          <div data-n="pos-legend" lang="ja"></div>
+          <div data-n="transcript" lang="ja"></div>
+        </div>
+        <aside data-n="current-sound-panel">
+          <p data-n="playback-status"></p>
+          <div data-n="current-character" lang="ja">·</div>
+          <p data-n="current-word" lang="ja"></p>
+          <div data-n="character-position"><span data-n="character-counter">0 / —</span><span data-n="character-time">00:00.00</span></div>
+          <div data-n="sound-bars" aria-hidden="true"><i data-n="sound-bar-one"></i><i data-n="sound-bar-two"></i><i data-n="sound-bar-three"></i><i data-n="sound-bar-four"></i><i data-n="sound-bar-five"></i></div>
+        </aside>
+      </section>
+      <section data-n="transport-panel">
+        <div data-n="transport-controls">
+          <button type="button" data-n="reset-button" data-i18n="reset"></button>
+          <button type="button" data-n="play-button" disabled><span data-n="play-icon" aria-hidden="true">▶</span><span data-n="play-label" data-i18n="loading"></span></button>
+          <span data-n="elapsed-time">00:00.00</span>
+          <div data-n="playback-speeds"><span data-n="speed-label" data-i18n="speed"></span><button type="button" data-n="speed-slow" data-rate="0.75">0.75×</button><button type="button" data-n="speed-normal" data-rate="1">1×</button><button type="button" data-n="speed-fast" data-rate="1.25">1.25×</button></div>
+        </div>
+        <input type="range" data-n="seek-slider" min="0" max="23.713" step="0.01" value="0" />
+        <div data-n="timeline-footer"><span data-n="timeline-start">00:00</span><span data-n="timeline-duration">00:23.71</span></div>
+        <p data-n="playback-error" data-message="无法播放" role="alert" hidden></p>
+      </section>
+      <footer data-n="page-footer"><span data-n="audio-caption" data-i18n="generatedAudio"></span><div data-n="downloads"><a href="./narration.wav" download="japanese_narration.wav" data-n="download-wav" data-i18n="downloadWav"></a><a href="./narration.srt" download="japanese_narration.srt" data-n="download-subtitles">SRT</a><a href="./timeline.json" download="japanese_narration.timeline.json" data-n="download-timeline">JSON</a></div></footer>
+      <audio data-n="narration-audio" src="./narration.wav" preload="auto"></audio>
+    </main>
+    <script src="./vendor/kuromoji/kuromoji.js" data-n="kuromoji-library"></script>
+    <script type="module" src="./main.mjs" data-n="preview-application"></script>
+  </body>
+</html>

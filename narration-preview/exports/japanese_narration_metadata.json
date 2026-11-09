@@ -1,0 +1,13 @@
+{
+  "Content-Length": "1707402",
+  "Content-Type": "audio/wav",
+  "Date": "Mon, 09 Nov 2026 06:21:16 GMT",
+  "Server": "uvicorn",
+  "X-Audio-Duration": "23.71",
+  "X-Audio-Id": "2caa3fde",
+  "X-Audio-Path": "2caa3fde.wav",
+  "X-Gen-Time": "8.32",
+  "X-Omnivoice-Backend": "0.5.8-beta.2",
+  "X-Seed": "42",
+  "Connection": "close"
+}

@@ -1,0 +1,13 @@
+{
+  "date": "Mon, 09 Nov 2026 07:41:08 GMT",
+  "server": "uvicorn",
+  "x-audio-id": "c025b71b",
+  "x-gen-time": "6.74",
+  "x-audio-path": "c025b71b.wav",
+  "x-seed": "42",
+  "x-audio-duration": "26.88",
+  "content-length": "1935566",
+  "content-type": "audio/wav",
+  "x-omnivoice-backend": "0.5.8-beta.2",
+  "Connection": "close"
+}

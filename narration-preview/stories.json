@@ -1,0 +1,4 @@
+[
+  {"id":"school-cat","title":"学校の前の猫","audio":"./narration.wav","timeline":"./timeline.json","subtitle":"./narration.srt"},
+  {"id":"cafe","title":"喫茶店と帰り道","audio":"./cafe.wav","timeline":"./cafe.timeline.json","subtitle":"./cafe.srt"}
+]
